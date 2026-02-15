@@ -15,6 +15,7 @@ project(nfx-vista-explorer
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 #----------------------------------------------
 # Dependencies - ImGui
@@ -25,6 +26,7 @@ FetchContent_Declare(
     imgui
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
     GIT_TAG docking
+    GIT_SHALLOW    TRUE
 )
 
 FetchContent_MakeAvailable(imgui)
@@ -53,9 +55,38 @@ FetchContent_Declare(
     glfw
     GIT_REPOSITORY https://github.com/glfw/glfw.git
     GIT_TAG 3.4
+    GIT_SHALLOW    TRUE
 )
 
 FetchContent_MakeAvailable(glfw)
+
+#----------------------------------------------
+# Dependencies - Vista SDK
+#----------------------------------------------
+
+# Vista SDK build options - explicit configuration
+set(DNV_VISTA_SDK_CPP_BUILD_STATIC        OFF CACHE BOOL "" FORCE)
+set(DNV_VISTA_SDK_CPP_BUILD_SHARED        ON  CACHE BOOL "" FORCE)
+set(DNV_VISTA_SDK_CPP_BUILD_TOOLS         OFF CACHE BOOL "" FORCE)
+set(DNV_VISTA_SDK_CPP_BUILD_TESTS         OFF CACHE BOOL "" FORCE)
+set(DNV_VISTA_SDK_CPP_BUILD_SAMPLES       OFF CACHE BOOL "" FORCE)
+set(DNV_VISTA_SDK_CPP_BUILD_BENCHMARKS    OFF CACHE BOOL "" FORCE)
+set(DNV_VISTA_SDK_CPP_BUILD_DOCUMENTATION OFF CACHE BOOL "" FORCE)
+set(DNV_VISTA_SDK_CPP_ENABLE_SIMD         ON  CACHE BOOL "" FORCE)
+set(DNV_VISTA_SDK_CPP_LINK_TESTS_SHARED   OFF CACHE BOOL "" FORCE)
+set(DNV_VISTA_SDK_CPP_BUILD_SMOKE_TESTS   OFF CACHE BOOL "" FORCE)
+set(DNV_VISTA_SDK_CPP_INSTALL_PROJECT     OFF CACHE BOOL "" FORCE)
+set(DNV_VISTA_SDK_CPP_ENABLE_PACKAGING    OFF CACHE BOOL "" FORCE)
+
+FetchContent_Declare(
+    vista
+    GIT_REPOSITORY https://github.com/nfx-opensource/vista-sdk.git
+    GIT_TAG        feature/cpp
+    GIT_SHALLOW    TRUE
+    SOURCE_SUBDIR  cpp
+)
+
+FetchContent_MakeAvailable(vista)
 
 #----------------------------------------------
 # Application sources
@@ -77,7 +108,6 @@ add_executable(${PROJECT_NAME} ${APP_SOURCES})
 #----------------------------------------------
 
 target_include_directories(${PROJECT_NAME} PRIVATE
-    ${CMAKE_SOURCE_DIR}/include
     ${imgui_SOURCE_DIR}
     ${imgui_SOURCE_DIR}/backends
 )
@@ -91,4 +121,5 @@ target_link_libraries(${PROJECT_NAME}  PRIVATE OpenGL::GL)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     glfw
+    dnv-vista-sdk-cpp
 )

@@ -2,6 +2,7 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+#include <dnv/vista/sdk/VIS.h>
 
 #include <iostream>
 
@@ -59,11 +60,55 @@ void cleanup( GLFWwindow* window )
     glfwTerminate();
 }
 
+void renderVistaExplorer()
+{
+    using namespace dnv::vista::sdk;
+
+    ImGui::Begin( "Vista SDK Explorer", nullptr, ImGuiWindowFlags_AlwaysAutoResize );
+
+    ImGui::SeparatorText( "VIS Information" );
+
+    const auto& vis = VIS::instance();
+
+    auto latestVersion = vis.latest();
+    ImGui::Text( "Latest VIS Version: %s", VisVersions::toString( latestVersion ).data() );
+
+    ImGui::Separator();
+
+    const auto& gmod = vis.gmod( latestVersion );
+
+    size_t nodeCount = 0;
+    for( [[maybe_unused]] const auto& [code, node] : gmod )
+    {
+        nodeCount++;
+    }
+
+    ImGui::Text( "Gmod Node Count: %zu", nodeCount );
+    ImGui::Text( "Root Node: %s", gmod.rootNode().code().data() );
+
+    ImGui::Separator();
+
+    auto engineNodeOpt = gmod.node( "C101" );
+    if( engineNodeOpt.has_value() )
+    {
+        const auto* engineNode = *engineNodeOpt;
+        ImGui::SeparatorText( "Example Node: Main Engine (C101)" );
+        ImGui::Text( "Code: %s", engineNode->code().data() );
+        ImGui::Text( "Name: %s", engineNode->metadata().name().data() );
+        ImGui::Text( "Category: %s", engineNode->metadata().category().data() );
+        ImGui::Text( "Is Leaf: %s", engineNode->isLeafNode() ? "Yes" : "No" );
+    }
+
+    ImGui::End();
+}
+
 int main()
 {
     GLFWwindow* window = createWindow();
     if( !window )
+    {
         return 1;
+    }
 
     if( !initializeImGui( window ) )
     {
@@ -79,7 +124,7 @@ int main()
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        ImGui::ShowDemoWindow();
+        renderVistaExplorer();
 
         ImGui::Render();
 
