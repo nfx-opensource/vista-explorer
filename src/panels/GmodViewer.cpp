@@ -1,3 +1,17 @@
+/**
+ * @file GmodViewer.cpp
+ * @brief Gmod tree viewer panel implementation
+ *
+ * Displays the Generic Product Model (Gmod) hierarchy following DNV's classification model.
+ *
+ * References:
+ * - Vindøy, V. (2008). "A Functionally Oriented Vessel Data Model Used as Basis for Classification"
+ *   Det Norske Veritas, Oslo/Norway
+ *   The Gmod model is compliant with the modelling principles defined in ISO 15926.
+ * - ISO 19848: Ships and marine technology - Standard data for shipboard machinery and equipment
+ *   (Annex C: Gmod structure and coding system)
+ */
+
 #include "panels/GmodViewer.h"
 
 #include <dnv/vista/sdk/VIS.h>
@@ -17,10 +31,10 @@ namespace nfx::vista
         ImGui::SetNextWindowSize( ImVec2( 800, 600 ), ImGuiCond_FirstUseEver );
         ImGui::Begin( "Gmod Viewer" );
 
-        renderHeader();
+        renderLegend();
         ImGui::Separator();
 
-        renderLegend();
+        renderHeader();
         ImGui::Separator();
 
         const auto& gmod = m_vis.gmod( m_currentVersion );
@@ -123,105 +137,159 @@ namespace nfx::vista
     {
         ImGui::BeginChild( "GmodTree", ImVec2( 0, 0 ), true );
 
-        // Recursive function to render tree nodes
-        // parentCode: optional parent code to display as green badge on Product Types
-        std::function<void( const GmodNode&, std::string_view )> renderNode;
-        renderNode = [&]( const GmodNode& node, std::string_view parentCode = "" ) {
-            // Product Types are now rendered with parent badge
-            bool isProductType = node.metadata().category() == "PRODUCT" && node.metadata().type() == "TYPE";
+        // Based on Vindøy (2008) "A Functionally Oriented Vessel Data Model Used as Basis for Classification"
+        // The Gmod tree structure is compliant with ISO 15926 modelling principles and defines:
+        // - Function leaves: end nodes connected to physical components
+        // - Function compositions: parent composed of children (not substitutable)
+        // - Function selections: children are specializations of parent (substitutable, removed in vessel models)
+        // - Function groups: organizational grouping
 
-            // Node flags
-            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
-
-            if( node.children().isEmpty() )
-            {
-                flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-            }
-
-            // Color based on node properties
+        // Helper to determine badge colors based on node type
+        auto getBadgeColors = []( const GmodNode& node ) -> std::pair<ImVec4, ImVec4> {
             std::string_view category = node.metadata().category();
             std::string_view type = node.metadata().type();
 
-            ImVec4 badgeBg;
-            ImVec4 badgeText;
+            ImVec4 bg, text;
 
-            // #ff0000 -Red filled for Product Selections (CS1, CS3, etc.)
+            // Red for Product Selections
             if( node.isProductSelection() )
             {
-                badgeBg = ImVec4( 0.9f, 0.2f, 0.2f, 1.0f );
-                badgeText = ImVec4( 1.0f, 1.0f, 1.0f, 1.0f );
+                bg = ImVec4( 0.9f, 0.2f, 0.2f, 1.0f );
+                text = ImVec4( 1.0f, 1.0f, 1.0f, 1.0f );
             }
-
-            // #008000 - Dark green for all GROUP types
+            // Dark green for GROUP
             else if( type == "GROUP" )
             {
-                badgeBg = ImVec4( 0.0f, 0.5f, 0.0f, 1.0f );
-                badgeText = ImVec4( 0.0f, 0.0f, 0.0f, 1.0f );
+                bg = ImVec4( 0.0f, 0.5f, 0.0f, 1.0f );
+                text = ImVec4( 0.0f, 0.0f, 0.0f, 1.0f );
             }
-
-            // #00ff00 - Lime green for ASSET FUNCTION LEAF
+            // Lime green for ASSET FUNCTION LEAF
             else if( category == "ASSET FUNCTION" && type == "LEAF" )
             {
-                badgeBg = ImVec4( 0.0f, 1.0f, 0.0f, 1.0f );
-                badgeText = ImVec4( 0.0f, 0.0f, 0.0f, 1.0f );
+                bg = ImVec4( 0.0f, 1.0f, 0.0f, 1.0f );
+                text = ImVec4( 0.0f, 0.0f, 0.0f, 1.0f );
             }
-
-            // #99cc00 - Yellow-green for PRODUCT FUNCTION COMPOSITION
+            // Yellow-green for PRODUCT FUNCTION COMPOSITION
             else if( category == "PRODUCT FUNCTION" && type == "COMPOSITION" )
             {
-                badgeBg = ImVec4( 0.6f, 0.8f, 0.0f, 1.0f );
-                badgeText = ImVec4( 0.0f, 0.0f, 0.0f, 1.0f );
+                bg = ImVec4( 0.6f, 0.8f, 0.0f, 1.0f );
+                text = ImVec4( 0.0f, 0.0f, 0.0f, 1.0f );
             }
-
-            // #ccffcc - Light green for PRODUCT FUNCTION LEAF
+            // Light green for PRODUCT FUNCTION LEAF
             else if( category == "PRODUCT FUNCTION" && type == "LEAF" )
             {
-                badgeBg = ImVec4( 0.8f, 1.0f, 0.8f, 1.0f );
-                badgeText = ImVec4( 0.0f, 0.0f, 0.0f, 1.0f );
+                bg = ImVec4( 0.8f, 1.0f, 0.8f, 1.0f );
+                text = ImVec4( 0.0f, 0.0f, 0.0f, 1.0f );
             }
-            // #008000 - Default green for everything else
+            // Default green
             else
             {
-                badgeBg = ImVec4( 0.0f, 1.0f, 0.0f, 1.0f );
-                badgeText = ImVec4( 0.0f, 0.0f, 0.0f, 1.0f );
+                bg = ImVec4( 0.0f, 1.0f, 0.0f, 1.0f );
+                text = ImVec4( 0.0f, 0.0f, 0.0f, 1.0f );
             }
 
-            // Render tree arrow and indentation manually
+            return { bg, text };
+        };
+
+        // Helper to check if a node will have visible children after filtering
+        auto hasVisibleChildren = [&]( const GmodNode& node ) -> bool {
+            if( node.children().isEmpty() )
+            {
+                return false;
+            }
+
+            auto nodeProductType = node.productType();
+            
+            for( const auto* child : node.children() )
+            {
+                // Skip if child is the Product Type (already shown as badge)
+                if( nodeProductType.has_value() && child == nodeProductType.value() )
+                {
+                    // Check if Product Type has grandchildren
+                    if( !child->children().isEmpty() )
+                    {
+                        return true;
+                    }
+                    continue;
+                }
+
+                // Product Selections and Function Selections are skipped but their children are shown
+                if( child->isProductSelection() )
+                {
+                    if( !child->children().isEmpty() )
+                    {
+                        return true;
+                    }
+                }
+                else if(
+                    child->metadata().type() == "SELECTION" &&
+                    ( child->metadata().category() == "PRODUCT FUNCTION" ||
+                      child->metadata().category() == "ASSET FUNCTION" ) )
+                {
+                    if( !child->children().isEmpty() )
+                    {
+                        return true;
+                    }
+                }
+                else
+                {
+                    // This child will be rendered
+                    return true;
+                }
+            }
+
+            return false;
+        };
+
+        // Recursive function to render tree nodes
+        // parentNode: optional parent node to display as badge (for nodes promoted from skipped selections)
+        std::function<void( const GmodNode&, const GmodNode* )> renderNode;
+        renderNode = [&]( const GmodNode& node, const GmodNode* parentNode = nullptr ) {
+            bool isProductType = node.metadata().category() == "PRODUCT" && node.metadata().type() == "TYPE";
+            auto [badgeBg, badgeText] = getBadgeColors( node );
+
+            // Render tree node
             ImGui::AlignTextToFramePadding();
 
             char treeId[256];
-            snprintf( treeId, sizeof( treeId ), "##tree_%s", node.code().data() );
+            snprintf( treeId, sizeof( treeId ), "##tree_%s_%p", node.code().data(), static_cast<const void*>( &node ) );
 
             bool nodeOpen = false;
-            if( !node.children().isEmpty() )
+            bool willHaveChildren = hasVisibleChildren( node );
+            
+            if( willHaveChildren )
             {
                 nodeOpen = ImGui::TreeNodeEx( treeId, ImGuiTreeNodeFlags_None );
                 ImGui::SameLine();
             }
             else
             {
-                ImGui::TreeNodeEx( treeId, ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen );
+                // Leaf nodes: display bullet instead of arrow
+                ImGui::TreeNodeEx(
+                    treeId, ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Bullet );
                 ImGui::SameLine();
             }
 
-            // Render parent badge (green) if provided
-            if( !parentCode.empty() )
+            // Render parent badge if provided (for nodes from skipped selections)
+            if( parentNode != nullptr )
             {
+                auto [parentBadgeBg, parentBadgeText] = getBadgeColors( *parentNode );
+
                 ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 12.0f );
                 ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 8.0f, 2.0f ) );
-                ImGui::PushStyleColor( ImGuiCol_Button, badgeBg );
-                ImGui::PushStyleColor( ImGuiCol_ButtonHovered, badgeBg );
-                ImGui::PushStyleColor( ImGuiCol_ButtonActive, badgeBg );
-                ImGui::PushStyleColor( ImGuiCol_Text, badgeText );
+                ImGui::PushStyleColor( ImGuiCol_Button, parentBadgeBg );
+                ImGui::PushStyleColor( ImGuiCol_ButtonHovered, parentBadgeBg );
+                ImGui::PushStyleColor( ImGuiCol_ButtonActive, parentBadgeBg );
+                ImGui::PushStyleColor( ImGuiCol_Text, parentBadgeText );
 
-                ImGui::SmallButton( parentCode.data() );
+                ImGui::Button( parentNode->code().data(), ImVec2( 60.0f, 0.0f ) );
 
                 ImGui::PopStyleColor( 4 );
                 ImGui::PopStyleVar( 2 );
                 ImGui::SameLine();
             }
 
-            // Render main badge (red for Product Types, green for others)
+            // Render main badge
             ImVec4 mainBadgeBg = isProductType ? ImVec4( 0.9f, 0.2f, 0.2f, 1.0f ) : badgeBg;
             ImVec4 mainBadgeText = isProductType ? ImVec4( 1.0f, 1.0f, 1.0f, 1.0f ) : badgeText;
 
@@ -232,13 +300,14 @@ namespace nfx::vista
             ImGui::PushStyleColor( ImGuiCol_ButtonActive, mainBadgeBg );
             ImGui::PushStyleColor( ImGuiCol_Text, mainBadgeText );
 
-            ImGui::SmallButton( node.code().data() );
+            ImGui::Button( node.code().data(), ImVec2( 60.0f, 0.0f ) );
 
             ImGui::PopStyleColor( 4 );
             ImGui::PopStyleVar( 2 );
 
-            // Check if node has a Product Type - show red badge for PRODUCT FUNCTION and ASSET FUNCTION
+            // Render Product Type badge if node has one
             auto productTypeOpt = node.productType();
+            std::string_view category = node.metadata().category();
             if( productTypeOpt.has_value() && ( category == "PRODUCT FUNCTION" || category == "ASSET FUNCTION" ) )
             {
                 const auto* productTypeNode = productTypeOpt.value();
@@ -250,7 +319,7 @@ namespace nfx::vista
                 ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0.9f, 0.2f, 0.2f, 1.0f ) );
                 ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 1.0f, 1.0f, 1.0f, 1.0f ) );
 
-                ImGui::SmallButton( productTypeNode->code().data() );
+                ImGui::Button( productTypeNode->code().data(), ImVec2( 60.0f, 0.0f ) );
 
                 ImGui::PopStyleColor( 4 );
                 ImGui::PopStyleVar( 2 );
@@ -258,7 +327,7 @@ namespace nfx::vista
 
             ImGui::SameLine();
 
-            // Use commonName if available, otherwise fallback to name
+            // Display name
             if( node.metadata().commonName().has_value() )
             {
                 ImGui::TextUnformatted( node.metadata().commonName().value().data() );
@@ -271,38 +340,82 @@ namespace nfx::vista
             // Render children recursively
             if( nodeOpen && !node.children().isEmpty() )
             {
+                // Check if node has a Product Type to avoid rendering it twice
+                auto nodeProductType = node.productType();
+
                 for( const auto* child : node.children() )
                 {
-                    // If child is a Product Selection (CS1, CS2, etc.), skip it but render its Product Type children
-                    if( child->isProductSelection() )
+                    // Skip child if it's the same as the node's Product Type (already shown as badge)
+                    // But render its children (grandchildren)
+                    if( nodeProductType.has_value() && child == nodeProductType.value() )
                     {
-                        // Render Product Types with current node's code as parent badge
-                        if( !child->children().isEmpty() )
+                        // Render grandchildren as if they were direct children
+                        for( const auto* grandchild : child->children() )
                         {
-                            for( const auto* grandchild : child->children() )
+                            if( grandchild->isProductSelection() )
                             {
-                                renderNode( *grandchild, node.code() );
+                                for( const auto* greatGrandchild : grandchild->children() )
+                                {
+                                    renderNode( *greatGrandchild, &node );
+                                }
+                            }
+                            else if(
+                                grandchild->metadata().category() == "PRODUCT" &&
+                                grandchild->metadata().type() == "TYPE" )
+                            {
+                                renderNode( *grandchild, &node );
+                            }
+                            else
+                            {
+                                renderNode( *grandchild, nullptr );
                             }
                         }
+                        continue;
                     }
-                    // If child is a Product Type, render it with current node's code as parent badge
+
+                    // Skip Product Selections (Component selections like CS1, CS2) but render their children
+                    // Reference: Vindøy (2008) Section 2.3 - "Component selections are groups of Components
+                    // with a parent and children. When the selection has been performed, the Component selection
+                    // is substituted by the selected child."
+                    if( child->isProductSelection() )
+                    {
+                        for( const auto* grandchild : child->children() )
+                        {
+                            renderNode( *grandchild, &node );
+                        }
+                    }
+                    // Skip Product Function Selections (Function selections like C101.2s) but render their children
+                    // Reference: Vindøy (2008) Section 2.2 - "Function selections are groups of Functions with
+                    // a parent and children. When applied to a vessel, it is generally allowed to select more
+                    // than one child. When the selection has been performed, the Function selection is removed."
+                    else if(
+                        child->metadata().type() == "SELECTION" &&
+                        ( child->metadata().category() == "PRODUCT FUNCTION" ||
+                          child->metadata().category() == "ASSET FUNCTION" ) )
+                    {
+                        for( const auto* grandchild : child->children() )
+                        {
+                            renderNode( *grandchild, &node );
+                        }
+                        continue; // Don't render the selection node itself
+                    }
+                    // Product Types get parent badge
                     else if( child->metadata().category() == "PRODUCT" && child->metadata().type() == "TYPE" )
                     {
-                        // If current node is also a Product Type, use its parent code, otherwise use current code
-                        std::string_view badgeToShow = isProductType ? parentCode : node.code();
+                        // If current node is also a Product Type, propagate the parent badge
+                        const GmodNode* badgeToShow = isProductType ? parentNode : &node;
                         renderNode( *child, badgeToShow );
                     }
                     else
                     {
-                        // Normal children rendered without parent badge
-                        renderNode( *child, "" );
+                        renderNode( *child, nullptr );
                     }
                 }
                 ImGui::TreePop();
             }
         };
 
-        // Start from root node - sort first level children lexicographically
+        // Start from root node
         const auto& rootNode = gmod.rootNode();
         if( !rootNode.children().isEmpty() )
         {
@@ -311,7 +424,8 @@ namespace nfx::vista
             {
                 sortedChildren.push_back( child );
             }
-            // Natural sort: extract numeric prefix for proper ordering (000a < 100a < 1000a)
+
+            // Natural sort: extract numeric prefix for proper ordering
             std::sort( sortedChildren.begin(), sortedChildren.end(), []( const GmodNode* a, const GmodNode* b ) {
                 auto extractNumber = []( std::string_view code ) -> int {
                     int num = 0;
@@ -334,12 +448,12 @@ namespace nfx::vista
                 {
                     return numA < numB;
                 }
-                return a->code() < b->code(); // Fallback to lexicographic if same number
+                return a->code() < b->code();
             } );
 
             for( const auto* child : sortedChildren )
             {
-                renderNode( *child, "" );
+                renderNode( *child, nullptr );
             }
         }
 
