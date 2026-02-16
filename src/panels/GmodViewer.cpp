@@ -14,9 +14,6 @@
 
 #include "panels/GmodViewer.h"
 
-#include <dnv/vista/sdk/VIS.h>
-#include <imgui.h>
-
 namespace nfx::vista
 {
     GmodViewer::GmodViewer( const VIS& vis )
@@ -24,6 +21,70 @@ namespace nfx::vista
           m_currentVersion{ vis.latest() },
           m_versionIndex{ static_cast<int>( vis.versions().size() ) - 1 }
     {
+    }
+
+    std::pair<ImVec4, ImVec4> GmodViewer::badgeColors( const GmodNode& node ) const
+    {
+        std::string_view category = node.metadata().category();
+        std::string_view type = node.metadata().type();
+
+        ImVec4 bg, text;
+
+        if( node.isProductSelection() )
+        {
+            bg = ImVec4( 0.9f, 0.2f, 0.2f, 1.0f );
+            text = ImVec4( 1.0f, 1.0f, 1.0f, 1.0f );
+        }
+        else if( type == "GROUP" )
+        {
+            bg = ImVec4( 0.0f, 0.5f, 0.0f, 1.0f );
+            text = ImVec4( 0.0f, 0.0f, 0.0f, 1.0f );
+        }
+        else if( category == "ASSET FUNCTION" && type == "LEAF" )
+        {
+            bg = ImVec4( 0.0f, 1.0f, 0.0f, 1.0f );
+            text = ImVec4( 0.0f, 0.0f, 0.0f, 1.0f );
+        }
+        else if( category == "PRODUCT FUNCTION" && type == "COMPOSITION" )
+        {
+            bg = ImVec4( 0.6f, 0.8f, 0.0f, 1.0f );
+            text = ImVec4( 0.0f, 0.0f, 0.0f, 1.0f );
+        }
+        else if( category == "PRODUCT FUNCTION" && type == "LEAF" )
+        {
+            bg = ImVec4( 0.8f, 1.0f, 0.8f, 1.0f );
+            text = ImVec4( 0.0f, 0.0f, 0.0f, 1.0f );
+        }
+        else
+        {
+            bg = ImVec4( 0.0f, 1.0f, 0.0f, 1.0f );
+            text = ImVec4( 0.0f, 0.0f, 0.0f, 1.0f );
+        }
+
+        return { bg, text };
+    }
+
+    bool GmodViewer::renderBadge( const GmodNode& node )
+    {
+        bool isProductType = node.metadata().category() == "PRODUCT" && node.metadata().type() == "TYPE";
+        auto [badgeBg, badgeText] = badgeColors( node );
+
+        ImVec4 mainBadgeBg = isProductType ? ImVec4( 0.9f, 0.2f, 0.2f, 1.0f ) : badgeBg;
+        ImVec4 mainBadgeText = isProductType ? ImVec4( 1.0f, 1.0f, 1.0f, 1.0f ) : badgeText;
+
+        ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 12.0f );
+        ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 8.0f, 2.0f ) );
+        ImGui::PushStyleColor( ImGuiCol_Button, mainBadgeBg );
+        ImGui::PushStyleColor( ImGuiCol_ButtonHovered, mainBadgeBg );
+        ImGui::PushStyleColor( ImGuiCol_ButtonActive, mainBadgeBg );
+        ImGui::PushStyleColor( ImGuiCol_Text, mainBadgeText );
+
+        bool clicked = ImGui::Button( node.code().data(), ImVec2( 0.0f, 0.0f ) );
+
+        ImGui::PopStyleColor( 4 );
+        ImGui::PopStyleVar( 2 );
+
+        return clicked;
     }
 
     void GmodViewer::render()
@@ -38,9 +99,24 @@ namespace nfx::vista
         ImGui::Separator();
 
         const auto& gmod = m_vis.gmod( m_currentVersion );
+
+        // Always show tree
         renderTree( gmod );
 
         ImGui::End();
+
+        const auto& gmodForSearch = m_vis.gmod( m_currentVersion );
+        bool showOverlay = m_search.buffer[0] != '\0' && ( m_search.boxHasFocus || m_search.overlayHovered );
+
+        if( showOverlay )
+        {
+            renderSearchResultsOverlay( gmodForSearch );
+        }
+        else if( m_search.buffer[0] != '\0' )
+        {
+            // Search buffer not empty but overlay not shown = clicked outside, clear search
+            m_search.buffer[0] = '\0';
+        }
     }
 
     void GmodViewer::renderHeader()
@@ -70,6 +146,26 @@ namespace nfx::vista
         const auto& gmod = m_vis.gmod( m_currentVersion );
         ImGui::SameLine();
         ImGui::Text( "| Nodes: %zu", std::distance( gmod.begin(), gmod.end() ) );
+
+        // Search box
+        ImGui::Spacing();
+        ImGui::SetNextItemWidth( -1.0f ); // Full width
+
+        char previousBuffer[256];
+        strncpy( previousBuffer, m_search.buffer, sizeof( previousBuffer ) );
+
+        ImGui::InputTextWithHint(
+            "##search", "Search nodes (code or name)...", m_search.buffer, sizeof( m_search.buffer ) );
+
+        // Increment search ID when buffer changes (new search) to force window reordering
+        if( strcmp( previousBuffer, m_search.buffer ) != 0 )
+        {
+            m_search.id++;
+        }
+
+        m_search.boxHasFocus = ImGui::IsItemActive();
+        m_search.boxPos = ImGui::GetItemRectMin();
+        m_search.boxSize = ImGui::GetItemRectSize();
     }
 
     void GmodViewer::renderLegend()
@@ -144,53 +240,6 @@ namespace nfx::vista
         // - Function selections: children are specializations of parent (substitutable, removed in vessel models)
         // - Function groups: organizational grouping
 
-        // Helper to determine badge colors based on node type
-        auto getBadgeColors = []( const GmodNode& node ) -> std::pair<ImVec4, ImVec4> {
-            std::string_view category = node.metadata().category();
-            std::string_view type = node.metadata().type();
-
-            ImVec4 bg, text;
-
-            // Red for Product Selections
-            if( node.isProductSelection() )
-            {
-                bg = ImVec4( 0.9f, 0.2f, 0.2f, 1.0f );
-                text = ImVec4( 1.0f, 1.0f, 1.0f, 1.0f );
-            }
-            // Dark green for GROUP
-            else if( type == "GROUP" )
-            {
-                bg = ImVec4( 0.0f, 0.5f, 0.0f, 1.0f );
-                text = ImVec4( 0.0f, 0.0f, 0.0f, 1.0f );
-            }
-            // Lime green for ASSET FUNCTION LEAF
-            else if( category == "ASSET FUNCTION" && type == "LEAF" )
-            {
-                bg = ImVec4( 0.0f, 1.0f, 0.0f, 1.0f );
-                text = ImVec4( 0.0f, 0.0f, 0.0f, 1.0f );
-            }
-            // Yellow-green for PRODUCT FUNCTION COMPOSITION
-            else if( category == "PRODUCT FUNCTION" && type == "COMPOSITION" )
-            {
-                bg = ImVec4( 0.6f, 0.8f, 0.0f, 1.0f );
-                text = ImVec4( 0.0f, 0.0f, 0.0f, 1.0f );
-            }
-            // Light green for PRODUCT FUNCTION LEAF
-            else if( category == "PRODUCT FUNCTION" && type == "LEAF" )
-            {
-                bg = ImVec4( 0.8f, 1.0f, 0.8f, 1.0f );
-                text = ImVec4( 0.0f, 0.0f, 0.0f, 1.0f );
-            }
-            // Default green
-            else
-            {
-                bg = ImVec4( 0.0f, 1.0f, 0.0f, 1.0f );
-                text = ImVec4( 0.0f, 0.0f, 0.0f, 1.0f );
-            }
-
-            return { bg, text };
-        };
-
         // Helper to check if a node will have visible children after filtering
         auto hasVisibleChildren = [&]( const GmodNode& node ) -> bool {
             if( node.children().isEmpty() )
@@ -199,7 +248,6 @@ namespace nfx::vista
             }
 
             auto nodeProductType = node.productType();
-            
             for( const auto* child : node.children() )
             {
                 // Skip if child is the Product Type (already shown as badge)
@@ -222,9 +270,8 @@ namespace nfx::vista
                     }
                 }
                 else if(
-                    child->metadata().type() == "SELECTION" &&
-                    ( child->metadata().category() == "PRODUCT FUNCTION" ||
-                      child->metadata().category() == "ASSET FUNCTION" ) )
+                    child->metadata().type() == "SELECTION" && ( child->metadata().category() == "PRODUCT FUNCTION" ||
+                                                                 child->metadata().category() == "ASSET FUNCTION" ) )
                 {
                     if( !child->children().isEmpty() )
                     {
@@ -245,8 +292,16 @@ namespace nfx::vista
         // parentNode: optional parent node to display as badge (for nodes promoted from skipped selections)
         std::function<void( const GmodNode&, const GmodNode* )> renderNode;
         renderNode = [&]( const GmodNode& node, const GmodNode* parentNode = nullptr ) {
+            // Push unique ID scope for this entire node (to avoid conflicts with nodes having same name)
+            ImGui::PushID( static_cast<const void*>( &node ) );
+
             bool isProductType = node.metadata().category() == "PRODUCT" && node.metadata().type() == "TYPE";
-            auto [badgeBg, badgeText] = getBadgeColors( node );
+            auto [badgeBg, badgeText] = badgeColors( node );
+
+            // Check if this is the target node for navigation
+            bool isTargetNode = m_navigation.scrollToNode && ( node.code() == m_navigation.selectedNodeCode );
+            bool isSelectedNode =
+                !m_navigation.selectedNodeCode.empty() && ( node.code() == m_navigation.selectedNodeCode );
 
             // Render tree node
             ImGui::AlignTextToFramePadding();
@@ -256,54 +311,74 @@ namespace nfx::vista
 
             bool nodeOpen = false;
             bool willHaveChildren = hasVisibleChildren( node );
-            
+
             if( willHaveChildren )
             {
-                nodeOpen = ImGui::TreeNodeEx( treeId, ImGuiTreeNodeFlags_None );
+                // Check if we should auto-expand this node (if target is a descendant OR if it's the selected node)
+                bool shouldExpand = false;
+                if( m_navigation.scrollToNode && !m_navigation.selectedNodeCode.empty() )
+                {
+                    auto& gmod = m_vis.gmod( m_currentVersion );
+                    auto targetOpt = gmod.node( m_navigation.selectedNodeCode );
+                    if( targetOpt.has_value() )
+                    {
+                        const GmodNode* target = targetOpt.value();
+                        // Walk up from target to see if current node is an ancestor
+                        const GmodNode* current = target;
+                        while( !current->parents().isEmpty() )
+                        {
+                            current = current->parents()[0];
+                            if( current == &node )
+                            {
+                                shouldExpand = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Also expand if this is the selected node and we want to expand it
+                if( isSelectedNode && m_navigation.expandSelectedNode )
+                {
+                    shouldExpand = true;
+                }
+
+                if( shouldExpand )
+                {
+                    ImGui::SetNextItemOpen( true );
+                }
+
+                nodeOpen =
+                    ImGui::TreeNodeEx( treeId, ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_OpenOnArrow );
                 ImGui::SameLine();
             }
             else
             {
                 // Leaf nodes: display bullet instead of arrow
                 ImGui::TreeNodeEx(
-                    treeId, ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Bullet );
+                    treeId,
+                    ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Bullet |
+                        ImGuiTreeNodeFlags_SpanFullWidth );
                 ImGui::SameLine();
+            }
+
+            // Scroll to target node
+            if( isTargetNode )
+            {
+                ImGui::SetScrollHereY( 0.5f );
+                m_navigation.scrollToNode = false;       // Reset flag after scrolling
+                m_navigation.expandSelectedNode = false; // Reset expand flag
             }
 
             // Render parent badge if provided (for nodes from skipped selections)
             if( parentNode != nullptr )
             {
-                auto [parentBadgeBg, parentBadgeText] = getBadgeColors( *parentNode );
-
-                ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 12.0f );
-                ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 8.0f, 2.0f ) );
-                ImGui::PushStyleColor( ImGuiCol_Button, parentBadgeBg );
-                ImGui::PushStyleColor( ImGuiCol_ButtonHovered, parentBadgeBg );
-                ImGui::PushStyleColor( ImGuiCol_ButtonActive, parentBadgeBg );
-                ImGui::PushStyleColor( ImGuiCol_Text, parentBadgeText );
-
-                ImGui::Button( parentNode->code().data(), ImVec2( 60.0f, 0.0f ) );
-
-                ImGui::PopStyleColor( 4 );
-                ImGui::PopStyleVar( 2 );
+                renderBadge( *parentNode );
                 ImGui::SameLine();
             }
 
             // Render main badge
-            ImVec4 mainBadgeBg = isProductType ? ImVec4( 0.9f, 0.2f, 0.2f, 1.0f ) : badgeBg;
-            ImVec4 mainBadgeText = isProductType ? ImVec4( 1.0f, 1.0f, 1.0f, 1.0f ) : badgeText;
-
-            ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 12.0f );
-            ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 8.0f, 2.0f ) );
-            ImGui::PushStyleColor( ImGuiCol_Button, mainBadgeBg );
-            ImGui::PushStyleColor( ImGuiCol_ButtonHovered, mainBadgeBg );
-            ImGui::PushStyleColor( ImGuiCol_ButtonActive, mainBadgeBg );
-            ImGui::PushStyleColor( ImGuiCol_Text, mainBadgeText );
-
-            ImGui::Button( node.code().data(), ImVec2( 60.0f, 0.0f ) );
-
-            ImGui::PopStyleColor( 4 );
-            ImGui::PopStyleVar( 2 );
+            renderBadge( node );
 
             // Render Product Type badge if node has one
             auto productTypeOpt = node.productType();
@@ -312,17 +387,7 @@ namespace nfx::vista
             {
                 const auto* productTypeNode = productTypeOpt.value();
                 ImGui::SameLine();
-                ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 12.0f );
-                ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 8.0f, 2.0f ) );
-                ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0.9f, 0.2f, 0.2f, 1.0f ) );
-                ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( 0.9f, 0.2f, 0.2f, 1.0f ) );
-                ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0.9f, 0.2f, 0.2f, 1.0f ) );
-                ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 1.0f, 1.0f, 1.0f, 1.0f ) );
-
-                ImGui::Button( productTypeNode->code().data(), ImVec2( 60.0f, 0.0f ) );
-
-                ImGui::PopStyleColor( 4 );
-                ImGui::PopStyleVar( 2 );
+                renderBadge( *productTypeNode );
             }
 
             ImGui::SameLine();
@@ -413,6 +478,8 @@ namespace nfx::vista
                 }
                 ImGui::TreePop();
             }
+
+            ImGui::PopID();
         };
 
         // Start from root node
@@ -458,5 +525,159 @@ namespace nfx::vista
         }
 
         ImGui::EndChild();
+    }
+
+    void GmodViewer::renderSearchResults( const Gmod& gmod )
+    {
+        // Convert search string to lowercase for case-insensitive search
+        std::string searchLower = m_search.buffer;
+        std::transform( searchLower.begin(), searchLower.end(), searchLower.begin(), ::tolower );
+
+        if( searchLower.empty() )
+        {
+            ImGui::TextDisabled( "Type to search..." );
+            return;
+        }
+
+        // Search through all nodes and render results
+        int resultCount = 0;
+        for( const auto& [code, node] : gmod )
+        {
+            // Convert node code and name to lowercase for comparison
+            std::string codeLower = std::string( node.code() );
+            std::transform( codeLower.begin(), codeLower.end(), codeLower.begin(), ::tolower );
+
+            std::string nameLower = std::string( node.metadata().name() );
+            std::transform( nameLower.begin(), nameLower.end(), nameLower.begin(), ::tolower );
+
+            std::string commonNameLower;
+            if( node.metadata().commonName().has_value() )
+            {
+                commonNameLower = std::string( node.metadata().commonName().value() );
+                std::transform( commonNameLower.begin(), commonNameLower.end(), commonNameLower.begin(), ::tolower );
+            }
+
+            // Check if search term matches code or name
+            // Code: contains search term (incremental search: "c10" matches "C101", "C1082", etc.)
+            bool codeMatch = codeLower.find( searchLower ) != std::string::npos;
+            bool nameMatch = nameLower.find( searchLower ) != std::string::npos;
+            bool commonNameMatch = !commonNameLower.empty() && commonNameLower.find( searchLower ) != std::string::npos;
+
+            if( codeMatch || nameMatch || commonNameMatch )
+            {
+                resultCount++;
+
+                // Build short path following ISO 19848 rules:
+                // Only include "individualizable" nodes (ending with 'i', 's') and Product Types
+                std::vector<const GmodNode*> shortPath;
+                const GmodNode* current = &node;
+
+                // Walk up to root, collecting only individualizable nodes and Product Types
+                while( !current->parents().isEmpty() )
+                {
+                    const GmodNode* parent = current->parents()[0];
+                    if( parent->code() == "VE" )
+                        break; // Stop at root
+
+                    // Include if individualizable (ends with 'i' or 's') or is a Product Type
+                    std::string_view code = parent->code();
+                    bool isIndividualizable = !code.empty() && ( code.back() == 'i' || code.back() == 's' );
+                    bool isProductType =
+                        parent->metadata().category() == "PRODUCT" && parent->metadata().type() == "TYPE";
+
+                    if( isIndividualizable || isProductType )
+                    {
+                        shortPath.push_back( parent );
+                    }
+
+                    current = parent;
+                }
+                std::reverse( shortPath.begin(), shortPath.end() );
+
+                ImGui::PushID( resultCount );
+
+                bool clicked = false;
+                std::string clickedNodeCode;
+
+                // Render short path badges
+                int badgeIndex = 0;
+                for( const GmodNode* parent : shortPath )
+                {
+                    ImGui::PushID( badgeIndex++ );
+                    if( renderBadge( *parent ) )
+                    {
+                        clicked = true;
+                        clickedNodeCode = std::string( parent->code() );
+                    }
+                    ImGui::PopID();
+                    ImGui::SameLine();
+                }
+
+                // Render current node badge
+                ImGui::PushID( badgeIndex );
+                if( renderBadge( node ) )
+                {
+                    clicked = true;
+                    clickedNodeCode = std::string( node.code() );
+                }
+                ImGui::PopID();
+
+                ImGui::SameLine();
+
+                // Display name as selectable
+                const char* displayName = node.metadata().commonName().has_value()
+                                              ? node.metadata().commonName().value().data()
+                                              : node.metadata().name().data();
+
+                if( ImGui::Selectable( displayName, false ) )
+                {
+                    clicked = true;
+                    clickedNodeCode = std::string( node.code() );
+                }
+
+                // Handle click: navigate to node in tree
+                if( clicked )
+                {
+                    m_navigation.selectedNodeCode = clickedNodeCode;
+                    m_navigation.scrollToNode = true;
+                    m_navigation.expandSelectedNode = true; // Also expand the selected node if it has children
+                    // Don't close search - user must click outside
+                }
+
+                ImGui::PopID();
+            }
+        }
+
+        if( resultCount == 0 )
+        {
+            ImGui::TextDisabled( "No results found" );
+        }
+    }
+
+    void GmodViewer::renderSearchResultsOverlay( const Gmod& gmod )
+    {
+        // Position the overlay window below the search box
+        ImVec2 overlayPos = ImVec2( m_search.boxPos.x, m_search.boxPos.y + m_search.boxSize.y );
+
+        ImGui::SetNextWindowPos( overlayPos, ImGuiCond_Always );
+        ImGui::SetNextWindowSize( ImVec2( m_search.boxSize.x, 300 ), ImGuiCond_Always );
+        ImGui::SetNextWindowBgAlpha( 0.95f );
+
+        // Use search ID in window name to force re-ordering when search changes
+        char windowName[64];
+        snprintf( windowName, sizeof( windowName ), "SearchOverlay##%d", m_search.id );
+
+        ImGui::Begin(
+            windowName,
+            nullptr,
+            ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoFocusOnAppearing );
+
+        renderSearchResults( gmod );
+
+        // Track if overlay is hovered to keep it open
+        m_search.overlayHovered = ImGui::IsWindowHovered( ImGuiHoveredFlags_AllowWhenBlockedByActiveItem );
+
+        ImGui::End();
     }
 } // namespace nfx::vista
