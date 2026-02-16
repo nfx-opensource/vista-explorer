@@ -94,6 +94,9 @@ FetchContent_MakeAvailable(vista)
 
 set(APP_SOURCES
     src/main.cpp
+
+    src/panels/GmodViewer.cpp
+    src/Application.cpp
     ${IMGUI_SOURCES}
 )
 
@@ -108,6 +111,7 @@ add_executable(${PROJECT_NAME} ${APP_SOURCES})
 #----------------------------------------------
 
 target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${imgui_SOURCE_DIR}
     ${imgui_SOURCE_DIR}/backends
 )
