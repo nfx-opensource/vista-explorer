@@ -94,6 +94,59 @@ namespace nfx::vista
             }
             ImGui::Text( "Category: %s", node.metadata().category().data() );
             ImGui::Text( "Type: %s", node.metadata().type().data() );
+
+            {
+                // Build and display path
+                std::string fullPath;
+                std::string shortPath;
+
+                // Build full path by walking up the hierarchy
+                std::vector<const GmodNode*> pathNodes;
+                const GmodNode* current = &node;
+
+                // Walk up to root, collecting parents
+                while( !current->parents().isEmpty() )
+                {
+                    pathNodes.push_back( current );
+                    current = current->parents()[0]; // Take first parent
+                }
+                // Add root
+                pathNodes.push_back( current );
+
+                // Build full path (root to node)
+                for( auto it = pathNodes.rbegin(); it != pathNodes.rend(); ++it )
+                {
+                    if( !fullPath.empty() )
+                        fullPath += "/";
+                    fullPath += ( *it )->code();
+                    if( ( *it )->location().has_value() )
+                    {
+                        fullPath += "-";
+                        fullPath += ( *it )->location()->value();
+                    }
+                }
+
+                // Build short path (skip intermediate nodes, show only meaningful ones)
+                // For now, just show last 3 levels
+                size_t startIdx = pathNodes.size() > 3 ? pathNodes.size() - 3 : 0;
+                for( size_t i = startIdx; i < pathNodes.size(); ++i )
+                {
+                    if( i > startIdx )
+                        shortPath += "/";
+                    shortPath += pathNodes[pathNodes.size() - 1 - i]->code();
+                    if( pathNodes[pathNodes.size() - 1 - i]->location().has_value() )
+                    {
+                        shortPath += "-";
+                        shortPath += pathNodes[pathNodes.size() - 1 - i]->location()->value();
+                    }
+                }
+
+                ImGui::Separator();
+                ImGui::TextColored( ImVec4( 0.7f, 0.9f, 1.0f, 1.0f ), "Full Path:" );
+                ImGui::TextWrapped( "%s", fullPath.c_str() );
+                ImGui::TextColored( ImVec4( 0.7f, 0.9f, 1.0f, 1.0f ), "Short Path:" );
+                ImGui::Text( "%s", shortPath.c_str() );
+            }
             ImGui::EndTooltip();
         }
 
