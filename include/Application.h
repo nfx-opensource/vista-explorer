@@ -1,5 +1,7 @@
 #pragma once
 
+#include "RenderingMode.h"
+
 #include <dnv/vista/sdk/VIS.h>
 
 #include <memory>
@@ -55,5 +57,12 @@ namespace nfx::vista
             bool showGmodViewer = true;
             bool showNodeDetails = true;
         } m_ui;
+
+        struct
+        {
+            RenderingMode mode;
+            double lastFrameTime = 0.0;
+            double fps = 0.0;
+        } m_rendering;
     };
 } // namespace nfx::vista

@@ -66,6 +66,7 @@ namespace nfx::vista
 
         {
             m_panels.gmodViewer = std::make_unique<GmodViewer>( *m_vis.instance );
+            m_panels.gmodViewer->setChangeNotifier( [this]() { m_rendering.mode.notifyChange(); } );
             m_panels.nodeDetails = std::make_unique<NodeDetails>();
         }
 
@@ -76,7 +77,7 @@ namespace nfx::vista
     {
         while( !glfwWindowShouldClose( m_window.handle ) )
         {
-            glfwWaitEvents();
+            m_rendering.mode.waitOrPollEvents();
 
             beginFrame();
             renderFrame();
@@ -102,7 +103,20 @@ namespace nfx::vista
 
     void Application::beginFrame()
     {
-        // glfwPollEvents();
+        // Calculate FPS for polling mode
+        if( m_rendering.mode.mode() == RenderingMode::Mode::Polling )
+        {
+            double currentTime = glfwGetTime();
+            if( m_rendering.lastFrameTime > 0.0 )
+            {
+                double deltaTime = currentTime - m_rendering.lastFrameTime;
+                if( deltaTime > 0.0 )
+                {
+                    m_rendering.fps = 1.0 / deltaTime;
+                }
+            }
+            m_rendering.lastFrameTime = currentTime;
+        }
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -157,7 +171,7 @@ namespace nfx::vista
                     {
                         m_vis.versionIndex = i;
                         m_vis.currentVersion = versions[i];
-                        glfwPostEmptyEvent();
+                        m_rendering.mode.notifyChange();
                     }
                 }
                 ImGui::EndMenu();
@@ -165,8 +179,31 @@ namespace nfx::vista
 
             if( ImGui::BeginMenu( "View" ) )
             {
-                ImGui::MenuItem( "Gmod Viewer", nullptr, &m_ui.showGmodViewer );
-                ImGui::MenuItem( "Node Details", nullptr, &m_ui.showNodeDetails );
+                if( ImGui::MenuItem( "Gmod Viewer", nullptr, &m_ui.showGmodViewer ) )
+                {
+                    m_rendering.mode.notifyChange();
+                }
+                if( ImGui::MenuItem( "Node Details", nullptr, &m_ui.showNodeDetails ) )
+                {
+                    m_rendering.mode.notifyChange();
+                }
+                
+                ImGui::Separator();
+                ImGui::Text( "Rendering Mode" );
+                bool isEventDriven = m_rendering.mode.mode() == RenderingMode::Mode::EventDriven;
+                bool isPolling = m_rendering.mode.mode() == RenderingMode::Mode::Polling;
+                
+                if( ImGui::MenuItem( "Event-driven (Low CPU)", nullptr, isEventDriven ) )
+                {
+                    m_rendering.mode.setMode( RenderingMode::Mode::EventDriven );
+                    m_rendering.mode.notifyChange();
+                }
+                if( ImGui::MenuItem( "Polling (High CPU)", nullptr, isPolling ) )
+                {
+                    m_rendering.mode.setMode( RenderingMode::Mode::Polling );
+                    m_rendering.mode.notifyChange();
+                }
+                
                 ImGui::EndMenu();
             }
 
@@ -213,7 +250,7 @@ namespace nfx::vista
         if( ImGui::Begin( "##StatusBar", nullptr, windowFlags ) )
         {
             // Rendering mode
-            ImGui::Text( "Mode: Event-driven" );
+            ImGui::Text( "Mode: %s", m_rendering.mode.modeName() );
 
             ImGui::SameLine();
             ImGui::TextDisabled( "|" );
@@ -237,6 +274,15 @@ namespace nfx::vista
             // Nodes count
             const auto& gmod = m_vis.instance->gmod( m_vis.currentVersion );
             ImGui::Text( "Nodes: %zu", std::distance( gmod.begin(), gmod.end() ) );
+
+            // FPS (only in polling mode)
+            if( m_rendering.mode.mode() == RenderingMode::Mode::Polling )
+            {
+                ImGui::SameLine();
+                ImGui::TextDisabled( "|" );
+                ImGui::SameLine();
+                ImGui::Text( "FPS: %.1f", m_rendering.fps );
+            }
         }
         ImGui::End();
 

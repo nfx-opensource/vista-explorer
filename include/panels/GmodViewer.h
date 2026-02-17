@@ -3,6 +3,7 @@
 #include <dnv/vista/sdk/VIS.h>
 #include <imgui.h>
 
+#include <functional>
 #include <utility>
 
 namespace dnv::vista::sdk
@@ -24,6 +25,8 @@ namespace nfx::vista
 
         const GmodNode* selectedNode( VisVersion version ) const;
 
+        void setChangeNotifier( std::function<void()> notifier ) { m_onChanged = std::move( notifier ); }
+
     private:
         void renderHeader();
         void renderHelp();
@@ -35,6 +38,7 @@ namespace nfx::vista
         bool renderBadge( const GmodNode& node );
 
         const VIS& m_vis;
+        std::function<void()> m_onChanged;
 
         struct SearchState
         {

@@ -182,6 +182,7 @@ namespace nfx::vista
         {
             // Search buffer not empty but overlay not shown = clicked outside, clear search
             m_search.buffer[0] = '\0';
+            if( m_onChanged ) m_onChanged();
         }
     }
 
@@ -201,6 +202,7 @@ namespace nfx::vista
         if( strcmp( previousBuffer, m_search.buffer ) != 0 )
         {
             m_search.id++;
+            if( m_onChanged ) m_onChanged();
         }
 
         m_search.boxHasFocus = ImGui::IsItemActive();
@@ -405,6 +407,7 @@ namespace nfx::vista
                 if( renderBadge( *parentNode ) )
                 {
                     m_navigation.selectedNodeCode = std::string( parentNode->code() );
+                    if( m_onChanged ) m_onChanged();
                 }
                 ImGui::SameLine();
             }
@@ -413,6 +416,7 @@ namespace nfx::vista
             if( renderBadge( node ) )
             {
                 m_navigation.selectedNodeCode = std::string( node.code() );
+                if( m_onChanged ) m_onChanged();
             }
 
             // Render Product Type badge if node has one
@@ -425,6 +429,7 @@ namespace nfx::vista
                 if( renderBadge( *productTypeNode ) )
                 {
                     m_navigation.selectedNodeCode = std::string( productTypeNode->code() );
+                    if( m_onChanged ) m_onChanged();
                 }
             }
 
@@ -635,6 +640,7 @@ namespace nfx::vista
                 m_navigation.selectedNodeCode = clickedNodeCode;
                 m_navigation.scrollToNode = true;
                 m_navigation.expandSelectedNode = true;
+                if( m_onChanged ) m_onChanged();
             }
 
             ImGui::PopID();
@@ -764,6 +770,7 @@ namespace nfx::vista
                     m_navigation.selectedNodeCode = clickedNodeCode;
                     m_navigation.scrollToNode = true;
                     m_navigation.expandSelectedNode = true; // Also expand the selected node if it has children
+                    if( m_onChanged ) m_onChanged();
                     // Don't close search - user must click outside
                 }
 
