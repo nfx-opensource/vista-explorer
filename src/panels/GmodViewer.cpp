@@ -107,7 +107,7 @@ namespace nfx::vista
         ImGui::SetNextWindowSize( ImVec2( 800, 600 ), ImGuiCond_FirstUseEver );
         ImGui::Begin( "Gmod Viewer" );
 
-        renderLegend();
+        renderHelp();
         ImGui::Separator();
 
         renderHeader();
@@ -183,62 +183,48 @@ namespace nfx::vista
         m_search.boxSize = ImGui::GetItemRectSize();
     }
 
-    void GmodViewer::renderLegend()
+    void GmodViewer::renderHelp()
     {
-        if( ImGui::CollapsingHeader( "Legend", ImGuiTreeNodeFlags_DefaultOpen ) )
+        if( ImGui::CollapsingHeader( "Help" ) )
         {
             ImGui::Indent();
 
-            // Badge types
-            ImGui::TextUnformatted( "Badge Types:" );
-            ImGui::BulletText( "Green badge: Asset function or Product function code" );
-            ImGui::BulletText( "Red badge: Product Type code (products that can be assigned to functions)" );
+            // Search
+            ImGui::SeparatorText( "Search" );
+            ImGui::BulletText( "Type code or name: 'C101' or 'engine'" );
+            ImGui::BulletText( "Use path notation: '411.1/C101' (case-insensitive)" );
+            ImGui::BulletText( "Click result to navigate and expand in tree" );
 
             ImGui::Spacing();
 
-            // Node categories (from Annex C, Table C.1)
-            ImGui::TextUnformatted( "Node Categories:" );
-            ImGui::BulletText( "Asset function leaf: Lowest level asset functions (e.g., 411.1 Propulsion driver)" );
-            ImGui::BulletText( "Asset function group: Grouping of asset functions (e.g., 411 Propulsion)" );
-            ImGui::BulletText( "Product function leaf: Lowest level product functions within products" );
-            ImGui::BulletText( "Product function group: Grouping of product functions" );
-            ImGui::BulletText( "Product Type: Specific product that can be assigned (e.g., C101 Engine)" );
-            ImGui::BulletText( "Product Selection: Group of selectable Product Types (hidden, children shown)" );
+            // Badge meaning
+            ImGui::SeparatorText( "Badge Colors" );
+
+            auto renderColorBadge = []( ImVec4 color, const char* label ) {
+                ImGui::PushStyleColor( ImGuiCol_Button, color );
+                ImGui::SmallButton( "    " );
+                ImGui::PopStyleColor();
+                ImGui::SameLine();
+                ImGui::TextUnformatted( label );
+            };
+
+            renderColorBadge( ImVec4( 0.0f, 0.5f, 0.0f, 1.0f ), "Dark green - Function GROUP" );
+            renderColorBadge( ImVec4( 0.0f, 1.0f, 0.0f, 1.0f ), "Lime green - ASSET FUNCTION LEAF" );
+            renderColorBadge( ImVec4( 0.6f, 0.8f, 0.0f, 1.0f ), "Yellow-green - PRODUCT FUNCTION (composition)" );
+            renderColorBadge( ImVec4( 0.8f, 1.0f, 0.8f, 1.0f ), "Light green - PRODUCT FUNCTION (leaf)" );
+            renderColorBadge( ImVec4( 0.9f, 0.2f, 0.2f, 1.0f ), "Red - PRODUCT TYPE" );
 
             ImGui::Spacing();
 
-            // Colors
-            ImGui::TextUnformatted( "Badge Colors:" );
+            // Node types
+            ImGui::SeparatorText( "Node Types" );
+            ImGui::BulletText( "Function leaf: Lowest level (e.g., 411.1 Propulsion driver)" );
+            ImGui::BulletText( "Function group: Organizational grouping (e.g., 411 Propulsion)" );
+            ImGui::BulletText( "Product Type: Assignable product (e.g., C101 Engine)" );
+            ImGui::BulletText( "Product Selection: Hidden, children shown directly" );
 
-            ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0.0f, 0.5f, 0.0f, 1.0f ) );
-            ImGui::SmallButton( "#008000" );
-            ImGui::PopStyleColor();
-            ImGui::SameLine();
-            ImGui::TextUnformatted( "Dark green - GROUP nodes" );
-
-            ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0.0f, 1.0f, 0.0f, 1.0f ) );
-            ImGui::SmallButton( "#00ff00" );
-            ImGui::PopStyleColor();
-            ImGui::SameLine();
-            ImGui::TextUnformatted( "Lime green - ASSET FUNCTION LEAF" );
-
-            ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0.6f, 0.8f, 0.0f, 1.0f ) );
-            ImGui::SmallButton( "#99cc00" );
-            ImGui::PopStyleColor();
-            ImGui::SameLine();
-            ImGui::TextUnformatted( "Yellow-green - PRODUCT FUNCTION COMPOSITION" );
-
-            ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0.8f, 1.0f, 0.8f, 1.0f ) );
-            ImGui::SmallButton( "#ccffcc" );
-            ImGui::PopStyleColor();
-            ImGui::SameLine();
-            ImGui::TextUnformatted( "Light green - PRODUCT FUNCTION LEAF" );
-
-            ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0.9f, 0.2f, 0.2f, 1.0f ) );
-            ImGui::SmallButton( "#ff0000" );
-            ImGui::PopStyleColor();
-            ImGui::SameLine();
-            ImGui::TextUnformatted( "Red - PRODUCT TYPE" );
+            ImGui::Spacing();
+            ImGui::TextDisabled( "ISO 19848 Annex C - Gmod structure" );
 
             ImGui::Unindent();
         }

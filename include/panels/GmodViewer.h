@@ -24,7 +24,7 @@ namespace nfx::vista
 
     private:
         void renderHeader();
-        void renderLegend();
+        void renderHelp();
         void renderTree( const Gmod& gmod );
         void renderSearchResults( const Gmod& gmod );
         void renderSearchResultsOverlay( const Gmod& gmod );
