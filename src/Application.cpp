@@ -13,11 +13,11 @@ namespace nfx::vista
 {
     Application::Application()
         : m_window{ nullptr },
-          m_vis{ VIS::instance() }
+          m_vis{ &VIS::instance() }
     {
-        auto versions = m_vis.versions();
-        m_versionIndex = versions.size() - 1;
-        m_currentVersion = versions[m_versionIndex];
+        auto versions = m_vis.instance->versions();
+        m_vis.versionIndex = versions.size() - 1;
+        m_vis.currentVersion = versions[m_vis.versionIndex];
     }
 
     Application::~Application()
@@ -37,15 +37,15 @@ namespace nfx::vista
             glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 5 );
             glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
 
-            m_window = glfwCreateWindow( 1920, 1080, "Vista explorer", nullptr, nullptr );
-            if( !m_window )
+            m_window.handle = glfwCreateWindow( 1920, 1080, "Vista explorer", nullptr, nullptr );
+            if( !m_window.handle )
             {
                 std::cerr << "Failed to create GLFW window\n";
                 glfwTerminate();
                 return false;
             }
 
-            glfwMakeContextCurrent( m_window );
+            glfwMakeContextCurrent( m_window.handle );
             glfwSwapInterval( 1 );
         }
 
@@ -60,13 +60,13 @@ namespace nfx::vista
             ImGui::StyleColorsDark();
 
             const char* glslVersion = "#version 330";
-            ImGui_ImplGlfw_InitForOpenGL( m_window, true );
+            ImGui_ImplGlfw_InitForOpenGL( m_window.handle, true );
             ImGui_ImplOpenGL3_Init( glslVersion );
         }
 
         {
-            m_gmodViewer = std::make_unique<GmodViewer>( m_vis );
-            m_nodeDetails = std::make_unique<NodeDetails>( m_vis );
+            m_panels.gmodViewer = std::make_unique<GmodViewer>( *m_vis.instance );
+            m_panels.nodeDetails = std::make_unique<NodeDetails>( *m_vis.instance );
         }
 
         return true;
@@ -74,7 +74,7 @@ namespace nfx::vista
 
     void Application::run()
     {
-        while( !glfwWindowShouldClose( m_window ) )
+        while( !glfwWindowShouldClose( m_window.handle ) )
         {
             glfwWaitEvents();
 
@@ -95,7 +95,7 @@ namespace nfx::vista
         }
 
         {
-            glfwDestroyWindow( m_window );
+            glfwDestroyWindow( m_window.handle );
             glfwTerminate();
         }
     }
@@ -142,21 +142,21 @@ namespace nfx::vista
             {
                 if( ImGui::MenuItem( "Exit" ) )
                 {
-                    glfwSetWindowShouldClose( m_window, true );
+                    glfwSetWindowShouldClose( m_window.handle, true );
                 }
                 ImGui::EndMenu();
             }
 
             if( ImGui::BeginMenu( "VIS" ) )
             {
-                auto versions = m_vis.versions();
+                auto versions = m_vis.instance->versions();
                 for( size_t i = 0; i < versions.size(); ++i )
                 {
-                    bool isSelected = (i == m_versionIndex);
+                    bool isSelected = (i == m_vis.versionIndex);
                     if( ImGui::MenuItem( VisVersions::toString( versions[i] ).data(), nullptr, isSelected ) )
                     {
-                        m_versionIndex = i;
-                        m_currentVersion = versions[i];
+                        m_vis.versionIndex = i;
+                        m_vis.currentVersion = versions[i];
                         glfwPostEmptyEvent();
                     }
                 }
@@ -165,8 +165,8 @@ namespace nfx::vista
 
             if( ImGui::BeginMenu( "View" ) )
             {
-                ImGui::MenuItem( "Gmod Viewer", nullptr, &m_showGmodViewer );
-                ImGui::MenuItem( "Node Details", nullptr, &m_showNodeDetails );
+                ImGui::MenuItem( "Gmod Viewer", nullptr, &m_ui.showGmodViewer );
+                ImGui::MenuItem( "Node Details", nullptr, &m_ui.showNodeDetails );
                 ImGui::EndMenu();
             }
 
@@ -176,17 +176,17 @@ namespace nfx::vista
         ImGui::End();
 
         // Render panels
-        if( m_showGmodViewer )
+        if( m_ui.showGmodViewer )
         {
-            m_gmodViewer->setVersion( m_currentVersion );
-            m_gmodViewer->render();
+            m_panels.gmodViewer->setVersion( m_vis.currentVersion );
+            m_panels.gmodViewer->render();
         }
 
-        if( m_showNodeDetails )
+        if( m_ui.showNodeDetails )
         {
-            const GmodNode* selectedNode = m_gmodViewer->selectedNode();
-            m_nodeDetails->setSelectedNode( selectedNode );
-            m_nodeDetails->render();
+            const GmodNode* selectedNode = m_panels.gmodViewer->selectedNode();
+            m_panels.nodeDetails->setSelectedNode( selectedNode );
+            m_panels.nodeDetails->render();
         }
 
         // Render status bar
@@ -229,14 +229,14 @@ namespace nfx::vista
             ImGui::SameLine();
 
             // VIS version
-            ImGui::Text( "VIS: %s", VisVersions::toString( m_currentVersion ).data() );
+            ImGui::Text( "VIS: %s", VisVersions::toString( m_vis.currentVersion ).data() );
 
             ImGui::SameLine();
             ImGui::TextDisabled( "|" );
             ImGui::SameLine();
 
             // Nodes count
-            const auto& gmod = m_vis.gmod( m_currentVersion );
+            const auto& gmod = m_vis.instance->gmod( m_vis.currentVersion );
             ImGui::Text( "Nodes: %zu", std::distance( gmod.begin(), gmod.end() ) );
         }
         ImGui::End();
@@ -249,13 +249,13 @@ namespace nfx::vista
         ImGui::Render();
 
         int display_w, display_h;
-        glfwGetFramebufferSize( m_window, &display_w, &display_h );
+        glfwGetFramebufferSize( m_window.handle, &display_w, &display_h );
         glViewport( 0, 0, display_w, display_h );
         glClearColor( 0.1f, 0.1f, 0.12f, 1.0f );
         glClear( GL_COLOR_BUFFER_BIT );
 
         ImGui_ImplOpenGL3_RenderDrawData( ImGui::GetDrawData() );
 
-        glfwSwapBuffers( m_window );
+        glfwSwapBuffers( m_window.handle );
     }
 } // namespace nfx::vista

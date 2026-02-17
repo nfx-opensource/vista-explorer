@@ -7,8 +7,6 @@
 
 struct GLFWwindow;
 
-using namespace dnv::vista::sdk;
-
 namespace nfx::vista
 {
     class GmodViewer;
@@ -33,17 +31,29 @@ namespace nfx::vista
 
         void renderStatusBar();
 
-        GLFWwindow* m_window;
-        bool m_running = true;
+        struct
+        {
+            GLFWwindow* handle = nullptr;
+            bool running = true;
+        } m_window;
 
-        const VIS& m_vis;
-        VisVersion m_currentVersion;
-        int m_versionIndex;
+        struct
+        {
+            const dnv::vista::sdk::VIS* instance;
+            dnv::vista::sdk::VisVersion currentVersion;
+            int versionIndex;
+        } m_vis;
 
-        std::unique_ptr<GmodViewer> m_gmodViewer;
-        std::unique_ptr<NodeDetails> m_nodeDetails;
+        struct
+        {
+            std::unique_ptr<GmodViewer> gmodViewer;
+            std::unique_ptr<NodeDetails> nodeDetails;
+        } m_panels;
 
-        bool m_showGmodViewer = true;
-        bool m_showNodeDetails = true;
+        struct
+        {
+            bool showGmodViewer = true;
+            bool showNodeDetails = true;
+        } m_ui;
     };
 } // namespace nfx::vista
