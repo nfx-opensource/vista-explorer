@@ -66,7 +66,7 @@ namespace nfx::vista
 
         {
             m_panels.gmodViewer = std::make_unique<GmodViewer>( *m_vis.instance );
-            m_panels.nodeDetails = std::make_unique<NodeDetails>( *m_vis.instance );
+            m_panels.nodeDetails = std::make_unique<NodeDetails>();
         }
 
         return true;
@@ -178,13 +178,12 @@ namespace nfx::vista
         // Render panels
         if( m_ui.showGmodViewer )
         {
-            m_panels.gmodViewer->setVersion( m_vis.currentVersion );
-            m_panels.gmodViewer->render();
+            m_panels.gmodViewer->render( m_vis.currentVersion );
         }
 
         if( m_ui.showNodeDetails )
         {
-            const GmodNode* selectedNode = m_panels.gmodViewer->selectedNode();
+            const GmodNode* selectedNode = m_panels.gmodViewer->selectedNode( m_vis.currentVersion );
             m_panels.nodeDetails->setSelectedNode( selectedNode );
             m_panels.nodeDetails->render();
         }

@@ -17,14 +17,8 @@
 namespace nfx::vista
 {
     GmodViewer::GmodViewer( const VIS& vis )
-        : m_vis{ vis },
-          m_currentVersion{ vis.latest() }
+        : m_vis{ vis }
     {
-    }
-
-    void GmodViewer::setVersion( VisVersion version )
-    {
-        m_currentVersion = version;
     }
 
     std::pair<ImVec4, ImVec4> GmodViewer::badgeColors( const GmodNode& node ) const
@@ -106,7 +100,7 @@ namespace nfx::vista
         return clicked;
     }
 
-    void GmodViewer::render()
+    void GmodViewer::render( VisVersion version )
     {
         ImGui::SetNextWindowSize( ImVec2( 800, 600 ), ImGuiCond_FirstUseEver );
         ImGui::Begin( "Gmod Viewer" );
@@ -117,19 +111,19 @@ namespace nfx::vista
         renderHeader();
         ImGui::Separator();
 
-        const auto& gmod = m_vis.gmod( m_currentVersion );
+        const auto& gmod = m_vis.gmod( version );
 
         // Always show tree
         renderTree( gmod );
 
         ImGui::End();
 
-        const auto& gmodForSearch = m_vis.gmod( m_currentVersion );
+        const auto& gmodForSearch = m_vis.gmod( version );
         bool showOverlay = m_search.buffer[0] != '\0' && ( m_search.boxHasFocus || m_search.overlayHovered );
 
         if( showOverlay )
         {
-            renderSearchResultsOverlay( gmodForSearch );
+            renderSearchResultsOverlay( gmodForSearch, version );
         }
         else if( m_search.buffer[0] != '\0' )
         {
@@ -299,7 +293,6 @@ namespace nfx::vista
                 bool shouldExpand = false;
                 if( m_navigation.scrollToNode && !m_navigation.selectedNodeCode.empty() )
                 {
-                    auto& gmod = m_vis.gmod( m_currentVersion );
                     auto targetOpt = gmod.node( m_navigation.selectedNodeCode );
                     if( targetOpt.has_value() )
                     {
@@ -519,7 +512,7 @@ namespace nfx::vista
         ImGui::EndChild();
     }
 
-    void GmodViewer::renderSearchResults( const Gmod& gmod )
+    void GmodViewer::renderSearchResults( const Gmod& gmod, VisVersion version )
     {
         // Convert search string to lowercase for case-insensitive search
         std::string searchLower = m_search.buffer;
@@ -535,7 +528,7 @@ namespace nfx::vista
         std::string pathBuffer = m_search.buffer;
         std::transform( pathBuffer.begin(), pathBuffer.end(), pathBuffer.begin(), ::toupper );
 
-        const auto& locations = m_vis.locations( m_currentVersion );
+        const auto& locations = m_vis.locations( version );
         auto parsedPath = GmodPath::fromShortPath( pathBuffer, gmod, locations );
 
         if( parsedPath.has_value() )
@@ -731,7 +724,7 @@ namespace nfx::vista
         }
     }
 
-    void GmodViewer::renderSearchResultsOverlay( const Gmod& gmod )
+    void GmodViewer::renderSearchResultsOverlay( const Gmod& gmod, VisVersion version )
     {
         // Position the overlay window below the search box
         ImVec2 overlayPos = ImVec2( m_search.boxPos.x, m_search.boxPos.y + m_search.boxSize.y );
@@ -755,7 +748,7 @@ namespace nfx::vista
             ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
                 ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoFocusOnAppearing );
 
-        renderSearchResults( gmod );
+        renderSearchResults( gmod, version );
 
         // Track if overlay is hovered to keep it open
         m_search.overlayHovered = ImGui::IsWindowHovered( ImGuiHoveredFlags_AllowWhenBlockedByActiveItem );
@@ -764,14 +757,14 @@ namespace nfx::vista
         ImGui::PopStyleColor();
     }
 
-    const GmodNode* GmodViewer::selectedNode() const
+    const GmodNode* GmodViewer::selectedNode( VisVersion version ) const
     {
         if( m_navigation.selectedNodeCode.empty() )
         {
             return nullptr;
         }
 
-        const auto& gmod = m_vis.gmod( m_currentVersion );
+        const auto& gmod = m_vis.gmod( version );
         auto nodeOpt = gmod.node( m_navigation.selectedNodeCode );
 
         const GmodNode* result = nodeOpt.has_value() ? nodeOpt.value() : nullptr;

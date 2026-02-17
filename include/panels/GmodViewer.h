@@ -20,23 +20,21 @@ namespace nfx::vista
     public:
         explicit GmodViewer( const VIS& vis );
 
-        void render();
-        void setVersion( VisVersion version );
+        void render( VisVersion version );
 
-        const GmodNode* selectedNode() const;
+        const GmodNode* selectedNode( VisVersion version ) const;
 
     private:
         void renderHeader();
         void renderHelp();
         void renderTree( const Gmod& gmod );
-        void renderSearchResults( const Gmod& gmod );
-        void renderSearchResultsOverlay( const Gmod& gmod );
+        void renderSearchResults( const Gmod& gmod, VisVersion version );
+        void renderSearchResultsOverlay( const Gmod& gmod, VisVersion version );
 
         std::pair<ImVec4, ImVec4> badgeColors( const GmodNode& node ) const;
         bool renderBadge( const GmodNode& node );
 
         const VIS& m_vis;
-        VisVersion m_currentVersion;
 
         struct SearchState
         {

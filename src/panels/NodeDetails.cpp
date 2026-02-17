@@ -10,11 +10,6 @@
 
 namespace nfx::vista
 {
-    NodeDetails::NodeDetails( const VIS& vis )
-        : m_vis{ vis }
-    {
-    }
-
     void NodeDetails::setSelectedNode( const GmodNode* node )
     {
         m_selectedNode = node;
