@@ -675,7 +675,7 @@ namespace nfx::vista
         ImVec2 overlayPos = ImVec2( m_search.boxPos.x, m_search.boxPos.y + m_search.boxSize.y );
 
         ImGui::SetNextWindowPos( overlayPos, ImGuiCond_Always );
-        ImGui::SetNextWindowSize( ImVec2( m_search.boxSize.x, 300 ), ImGuiCond_Always );
+        ImGui::SetNextWindowSize( ImVec2( m_search.boxSize.x, 0 ), ImGuiCond_Always );
         ImGui::SetNextWindowBgAlpha( 0.95f );
 
         // Use search ID in window name to force re-ordering when search changes
