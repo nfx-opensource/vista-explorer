@@ -554,8 +554,73 @@ namespace nfx::vista
             return;
         }
 
+        // Try to parse as GmodPath first (for path-based search like "411.1/C101")
+        std::string pathBuffer = m_search.buffer;
+        std::transform( pathBuffer.begin(), pathBuffer.end(), pathBuffer.begin(), ::toupper );
+
+        const auto& locations = m_vis.locations( m_currentVersion );
+        auto parsedPath = GmodPath::fromShortPath( pathBuffer, gmod, locations );
+
+        if( parsedPath.has_value() )
+        {
+            // Valid path found - show the target node
+            const GmodNode& targetNode = parsedPath->node();
+
+            ImGui::PushID( "path_search" );
+
+            // Build and display the full canonical path
+            std::vector<const GmodNode*> fullPath;
+            for( const auto& parent : parsedPath->parents() )
+            {
+                fullPath.push_back( &parent );
+            }
+            fullPath.push_back( &targetNode );
+
+            // Render path badges
+            bool clicked = false;
+            std::string clickedNodeCode;
+            int badgeIndex = 0;
+
+            for( size_t i = 0; i < fullPath.size(); ++i )
+            {
+                const GmodNode* pathNode = fullPath[i];
+
+                ImGui::PushID( badgeIndex++ );
+                if( renderBadge( *pathNode ) )
+                {
+                    clicked = true;
+                    clickedNodeCode = std::string( pathNode->code() );
+                }
+                ImGui::PopID();
+                ImGui::SameLine();
+            }
+
+            // Display name as selectable
+            const char* displayName = targetNode.metadata().commonName().has_value()
+                                          ? targetNode.metadata().commonName().value().data()
+                                          : targetNode.metadata().name().data();
+
+            if( ImGui::Selectable( displayName, false ) )
+            {
+                clicked = true;
+                clickedNodeCode = std::string( targetNode.code() );
+            }
+
+            // Handle click: navigate to node in tree
+            if( clicked )
+            {
+                m_navigation.selectedNodeCode = clickedNodeCode;
+                m_navigation.scrollToNode = true;
+                m_navigation.expandSelectedNode = true;
+            }
+
+            ImGui::PopID();
+            return;
+        }
+
         // Search through all nodes and render results
         int resultCount = 0;
+
         for( const auto& [code, node] : gmod )
         {
             // Convert node code and name to lowercase for comparison
@@ -587,8 +652,8 @@ namespace nfx::vista
             {
                 resultCount++;
 
-                // Build canonical path - show only: last ASSET/PRODUCT FUNCTION LEAF + the searched node
-                std::vector<const GmodNode*> shortPath;
+                // Build canonical path - show only: last ASSET/PRODUCT FUNCTION LEAF + subsequent products
+                std::vector<const GmodNode*> displayPath;
 
                 // Find the last ASSET/PRODUCT FUNCTION LEAF in the path
                 const GmodNode* current = &node;
@@ -623,10 +688,10 @@ namespace nfx::vista
                     current = parent;
                 }
 
-                // Build short path: [last function leaf] / [searched node]
+                // Build display path: [last function leaf] / [searched node]
                 if( lastFunctionLeaf != nullptr && lastFunctionLeaf != &node )
                 {
-                    shortPath.push_back( lastFunctionLeaf );
+                    displayPath.push_back( lastFunctionLeaf );
                 }
 
                 ImGui::PushID( resultCount );
@@ -634,15 +699,15 @@ namespace nfx::vista
                 bool clicked = false;
                 std::string clickedNodeCode;
 
-                // Render short path badges
+                // Render path badges
                 int badgeIndex = 0;
-                for( const GmodNode* parent : shortPath )
+                for( const GmodNode* pathNode : displayPath )
                 {
                     ImGui::PushID( badgeIndex++ );
-                    if( renderBadge( *parent ) )
+                    if( renderBadge( *pathNode ) )
                     {
                         clicked = true;
-                        clickedNodeCode = std::string( parent->code() );
+                        clickedNodeCode = std::string( pathNode->code() );
                     }
                     ImGui::PopID();
                     ImGui::SameLine();
@@ -694,8 +759,12 @@ namespace nfx::vista
         // Position the overlay window below the search box
         ImVec2 overlayPos = ImVec2( m_search.boxPos.x, m_search.boxPos.y + m_search.boxSize.y );
 
+        // Calculate max height for ~10 items
+        float itemHeight = ImGui::GetTextLineHeightWithSpacing() + ImGui::GetStyle().ItemSpacing.y;
+        float maxHeight = itemHeight * 10.5f; // .5f for partial item visibility
+
         ImGui::SetNextWindowPos( overlayPos, ImGuiCond_Always );
-        ImGui::SetNextWindowSize( ImVec2( m_search.boxSize.x, 0 ), ImGuiCond_Always );
+        ImGui::SetNextWindowSizeConstraints( ImVec2( m_search.boxSize.x, 0 ), ImVec2( m_search.boxSize.x, maxHeight ) );
 
         ImGui::PushStyleColor( ImGuiCol_WindowBg, ImVec4( 0.15f, 0.15f, 0.15f, 0.90f ) );
 
