@@ -578,36 +578,56 @@ namespace nfx::vista
             bool nameMatch = nameLower.find( searchLower ) != std::string::npos;
             bool commonNameMatch = !commonNameLower.empty() && commonNameLower.find( searchLower ) != std::string::npos;
 
-            if( codeMatch || nameMatch || commonNameMatch )
+            // Skip nodes ending with 'i' or 's' (individualizable/selections) from search results
+            // These are internal structure nodes, not actual items that can be referenced
+            std::string_view nodeCode = node.code();
+            bool isStructuralNode = !nodeCode.empty() && ( nodeCode.back() == 'i' || nodeCode.back() == 's' );
+
+            if( ( codeMatch || nameMatch || commonNameMatch ) && !isStructuralNode )
             {
                 resultCount++;
 
-                // Build short path following ISO 19848 rules:
-                // Only include "individualizable" nodes (ending with 'i', 's') and Product Types
+                // Build canonical path - show only: last ASSET/PRODUCT FUNCTION LEAF + the searched node
                 std::vector<const GmodNode*> shortPath;
-                const GmodNode* current = &node;
 
-                // Walk up to root, collecting only individualizable nodes and Product Types
+                // Find the last ASSET/PRODUCT FUNCTION LEAF in the path
+                const GmodNode* current = &node;
+                const GmodNode* lastFunctionLeaf = nullptr;
+
                 while( !current->parents().isEmpty() )
                 {
                     const GmodNode* parent = current->parents()[0];
                     if( parent->code() == "VE" )
-                        break; // Stop at root
+                        break;
 
-                    // Include if individualizable (ends with 'i' or 's') or is a Product Type
                     std::string_view code = parent->code();
-                    bool isIndividualizable = !code.empty() && ( code.back() == 'i' || code.back() == 's' );
-                    bool isProductType =
-                        parent->metadata().category() == "PRODUCT" && parent->metadata().type() == "TYPE";
-
-                    if( isIndividualizable || isProductType )
+                    if( !code.empty() )
                     {
-                        shortPath.push_back( parent );
-                    }
+                        char lastChar = code.back();
+                        bool isStructural = ( lastChar == 'i' || lastChar == 's' );
 
+                        if( !isStructural && !parent->isProductSelection() )
+                        {
+                            std::string_view category = parent->metadata().category();
+                            std::string_view type = parent->metadata().type();
+
+                            bool isFunctionLeaf =
+                                ( category == "ASSET FUNCTION" || category == "PRODUCT FUNCTION" ) && type == "LEAF";
+
+                            if( isFunctionLeaf )
+                            {
+                                lastFunctionLeaf = parent;
+                            }
+                        }
+                    }
                     current = parent;
                 }
-                std::reverse( shortPath.begin(), shortPath.end() );
+
+                // Build short path: [last function leaf] / [searched node]
+                if( lastFunctionLeaf != nullptr && lastFunctionLeaf != &node )
+                {
+                    shortPath.push_back( lastFunctionLeaf );
+                }
 
                 ImGui::PushID( resultCount );
 
@@ -676,7 +696,8 @@ namespace nfx::vista
 
         ImGui::SetNextWindowPos( overlayPos, ImGuiCond_Always );
         ImGui::SetNextWindowSize( ImVec2( m_search.boxSize.x, 0 ), ImGuiCond_Always );
-        ImGui::SetNextWindowBgAlpha( 0.95f );
+
+        ImGui::PushStyleColor( ImGuiCol_WindowBg, ImVec4( 0.15f, 0.15f, 0.15f, 0.90f ) );
 
         // Use search ID in window name to force re-ordering when search changes
         char windowName[64];
@@ -694,5 +715,6 @@ namespace nfx::vista
         m_search.overlayHovered = ImGui::IsWindowHovered( ImGuiHoveredFlags_AllowWhenBlockedByActiveItem );
 
         ImGui::End();
+        ImGui::PopStyleColor();
     }
 } // namespace nfx::vista
