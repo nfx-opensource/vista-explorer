@@ -201,11 +201,13 @@ namespace nfx::vista
             ImGui::SeparatorText( "Badge Colors" );
 
             auto renderColorBadge = []( ImVec4 color, const char* label ) {
+                ImGui::PushID( label );
                 ImGui::PushStyleColor( ImGuiCol_Button, color );
                 ImGui::SmallButton( "    " );
                 ImGui::PopStyleColor();
                 ImGui::SameLine();
                 ImGui::TextUnformatted( label );
+                ImGui::PopID();
             };
 
             renderColorBadge( ImVec4( 0.0f, 0.5f, 0.0f, 1.0f ), "Dark green - Function GROUP" );
