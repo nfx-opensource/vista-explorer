@@ -85,12 +85,29 @@ namespace nfx::vista
         if( !node.parents().isEmpty() )
         {
             ImGui::Text( "Parents: %zu", node.parents().size() );
-            ImGui::Indent();
-            for( const auto* parent : node.parents() )
+            
+            if( node.parents().size() > 4 )
             {
-                ImGui::BulletText( "%s - %s", parent->code().data(), parent->metadata().name().data() );
+                if( ImGui::TreeNode( "View Parents" ) )
+                {
+                    ImGui::Indent();
+                    for( const auto* parent : node.parents() )
+                    {
+                        ImGui::BulletText( "%s - %s", parent->code().data(), parent->metadata().name().data() );
+                    }
+                    ImGui::Unindent();
+                    ImGui::TreePop();
+                }
             }
-            ImGui::Unindent();
+            else
+            {
+                ImGui::Indent();
+                for( const auto* parent : node.parents() )
+                {
+                    ImGui::BulletText( "%s - %s", parent->code().data(), parent->metadata().name().data() );
+                }
+                ImGui::Unindent();
+            }
         }
         else
         {
@@ -103,13 +120,24 @@ namespace nfx::vista
         if( !node.children().isEmpty() )
         {
             ImGui::Text( "Children: %zu", node.children().size() );
-            if( ImGui::TreeNode( "View Children" ) )
+            
+            if( node.children().size() > 4 )
+            {
+                if( ImGui::TreeNode( "View Children" ) )
+                {
+                    for( const auto* child : node.children() )
+                    {
+                        ImGui::BulletText( "%s - %s", child->code().data(), child->metadata().name().data() );
+                    }
+                    ImGui::TreePop();
+                }
+            }
+            else
             {
                 for( const auto* child : node.children() )
                 {
                     ImGui::BulletText( "%s - %s", child->code().data(), child->metadata().name().data() );
                 }
-                ImGui::TreePop();
             }
         }
         else
