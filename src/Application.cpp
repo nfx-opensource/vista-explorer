@@ -106,7 +106,55 @@ namespace nfx::vista
 
     void Application::renderFrame()
     {
-        m_gmodViewer->render();
+        ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos( viewport->WorkPos );
+        ImGui::SetNextWindowSize( viewport->WorkSize );
+        ImGui::SetNextWindowViewport( viewport->ID );
+
+        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+        windowFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse;
+        windowFlags |= ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+        windowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+
+        ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 0.0f );
+        ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 0.0f );
+        ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0.0f, 0.0f ) );
+
+        ImGui::Begin( "DockSpace", nullptr, windowFlags );
+        ImGui::PopStyleVar( 3 );
+
+        // Create dockspace
+        ImGuiID dockspaceId = ImGui::GetID( "MainDockSpace" );
+        ImGui::DockSpace( dockspaceId, ImVec2( 0.0f, 0.0f ), ImGuiDockNodeFlags_PassthruCentralNode );
+
+        // Menu bar
+        if( ImGui::BeginMenuBar() )
+        {
+            if( ImGui::BeginMenu( "File" ) )
+            {
+                if( ImGui::MenuItem( "Exit" ) )
+                {
+                    glfwSetWindowShouldClose( m_window, true );
+                }
+                ImGui::EndMenu();
+            }
+
+            if( ImGui::BeginMenu( "View" ) )
+            {
+                ImGui::MenuItem( "Gmod Viewer", nullptr, &m_showGmodViewer );
+                ImGui::EndMenu();
+            }
+
+            ImGui::EndMenuBar();
+        }
+
+        ImGui::End();
+
+        // Render panels
+        if( m_showGmodViewer )
+        {
+            m_gmodViewer->render();
+        }
     }
 
     void Application::endFrame()

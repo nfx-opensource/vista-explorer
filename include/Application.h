@@ -36,5 +36,6 @@ namespace nfx::vista
         const VIS& m_vis;
 
         std::unique_ptr<GmodViewer> m_gmodViewer;
+        bool m_showGmodViewer = true;
     };
 } // namespace nfx::vista
