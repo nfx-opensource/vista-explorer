@@ -71,6 +71,8 @@ namespace nfx::vista
     {
         while( !glfwWindowShouldClose( m_window ) )
         {
+            glfwWaitEvents();
+
             beginFrame();
             renderFrame();
             endFrame();
@@ -95,7 +97,7 @@ namespace nfx::vista
 
     void Application::beginFrame()
     {
-        glfwPollEvents();
+        // glfwPollEvents();
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
