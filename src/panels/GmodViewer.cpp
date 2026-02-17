@@ -18,9 +18,13 @@ namespace nfx::vista
 {
     GmodViewer::GmodViewer( const VIS& vis )
         : m_vis{ vis },
-          m_currentVersion{ vis.latest() },
-          m_versionIndex{ static_cast<int>( vis.versions().size() ) - 1 }
+          m_currentVersion{ vis.latest() }
     {
+    }
+
+    void GmodViewer::setVersion( VisVersion version )
+    {
+        m_currentVersion = version;
     }
 
     std::pair<ImVec4, ImVec4> GmodViewer::badgeColors( const GmodNode& node ) const
@@ -136,32 +140,6 @@ namespace nfx::vista
 
     void GmodViewer::renderHeader()
     {
-        ImGui::SeparatorText( "VIS version" );
-
-        const auto& versions = m_vis.versions();
-
-        if( ImGui::BeginCombo( "VIS Version", VisVersions::toString( versions[m_versionIndex] ).data() ) )
-        {
-            for( size_t i = 0; i < versions.size(); ++i )
-            {
-                bool isSelected = ( m_versionIndex == static_cast<int>( i ) );
-                if( ImGui::Selectable( VisVersions::toString( versions[i] ).data(), isSelected ) )
-                {
-                    m_versionIndex = static_cast<int>( i );
-                    m_currentVersion = versions[m_versionIndex];
-                }
-                if( isSelected )
-                {
-                    ImGui::SetItemDefaultFocus();
-                }
-            }
-            ImGui::EndCombo();
-        }
-
-        const auto& gmod = m_vis.gmod( m_currentVersion );
-        ImGui::SameLine();
-        ImGui::Text( "| Nodes: %zu", std::distance( gmod.begin(), gmod.end() ) );
-
         // Search box
         ImGui::Spacing();
         ImGui::SetNextItemWidth( -1.0f ); // Full width

@@ -15,6 +15,9 @@ namespace nfx::vista
         : m_window{ nullptr },
           m_vis{ VIS::instance() }
     {
+        auto versions = m_vis.versions();
+        m_versionIndex = versions.size() - 1;
+        m_currentVersion = versions[m_versionIndex];
     }
 
     Application::~Application()
@@ -144,6 +147,22 @@ namespace nfx::vista
                 ImGui::EndMenu();
             }
 
+            if( ImGui::BeginMenu( "VIS" ) )
+            {
+                auto versions = m_vis.versions();
+                for( size_t i = 0; i < versions.size(); ++i )
+                {
+                    bool isSelected = (i == m_versionIndex);
+                    if( ImGui::MenuItem( VisVersions::toString( versions[i] ).data(), nullptr, isSelected ) )
+                    {
+                        m_versionIndex = i;
+                        m_currentVersion = versions[i];
+                        glfwPostEmptyEvent();
+                    }
+                }
+                ImGui::EndMenu();
+            }
+
             if( ImGui::BeginMenu( "View" ) )
             {
                 ImGui::MenuItem( "Gmod Viewer", nullptr, &m_showGmodViewer );
@@ -159,6 +178,7 @@ namespace nfx::vista
         // Render panels
         if( m_showGmodViewer )
         {
+            m_gmodViewer->setVersion( m_currentVersion );
             m_gmodViewer->render();
         }
 
@@ -209,14 +229,14 @@ namespace nfx::vista
             ImGui::SameLine();
 
             // VIS version
-            ImGui::Text( "VIS: %s", VisVersions::toString( m_vis.latest() ).data() );
+            ImGui::Text( "VIS: %s", VisVersions::toString( m_currentVersion ).data() );
 
             ImGui::SameLine();
             ImGui::TextDisabled( "|" );
             ImGui::SameLine();
 
             // Nodes count
-            const auto& gmod = m_vis.gmod( m_vis.latest() );
+            const auto& gmod = m_vis.gmod( m_currentVersion );
             ImGui::Text( "Nodes: %zu", std::distance( gmod.begin(), gmod.end() ) );
         }
         ImGui::End();

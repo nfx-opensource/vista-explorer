@@ -21,6 +21,7 @@ namespace nfx::vista
         explicit GmodViewer( const VIS& vis );
 
         void render();
+        void setVersion( VisVersion version );
 
         const GmodNode* selectedNode() const;
 
@@ -36,7 +37,6 @@ namespace nfx::vista
 
         const VIS& m_vis;
         VisVersion m_currentVersion;
-        int m_versionIndex;
 
         struct SearchState
         {

@@ -37,6 +37,8 @@ namespace nfx::vista
         bool m_running = true;
 
         const VIS& m_vis;
+        VisVersion m_currentVersion;
+        int m_versionIndex;
 
         std::unique_ptr<GmodViewer> m_gmodViewer;
         std::unique_ptr<NodeDetails> m_nodeDetails;
