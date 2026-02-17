@@ -22,6 +22,8 @@ namespace nfx::vista
 
         void render();
 
+        const GmodNode* selectedNode() const;
+
     private:
         void renderHeader();
         void renderHelp();

@@ -96,6 +96,7 @@ set(APP_SOURCES
     src/main.cpp
 
     src/panels/GmodViewer.cpp
+    src/panels/NodeDetails.cpp
     src/Application.cpp
     ${IMGUI_SOURCES}
 )

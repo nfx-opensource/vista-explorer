@@ -349,8 +349,10 @@ namespace nfx::vista
                     ImGui::SetNextItemOpen( true );
                 }
 
-                nodeOpen =
-                    ImGui::TreeNodeEx( treeId, ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_OpenOnArrow );
+                nodeOpen = ImGui::TreeNodeEx(
+                    treeId,
+                    ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_OpenOnArrow |
+                        ImGuiTreeNodeFlags_AllowOverlap );
                 ImGui::SameLine();
             }
             else
@@ -359,7 +361,7 @@ namespace nfx::vista
                 ImGui::TreeNodeEx(
                     treeId,
                     ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Bullet |
-                        ImGuiTreeNodeFlags_SpanFullWidth );
+                        ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_AllowOverlap );
                 ImGui::SameLine();
             }
 
@@ -374,12 +376,18 @@ namespace nfx::vista
             // Render parent badge if provided (for nodes from skipped selections)
             if( parentNode != nullptr )
             {
-                renderBadge( *parentNode );
+                if( renderBadge( *parentNode ) )
+                {
+                    m_navigation.selectedNodeCode = std::string( parentNode->code() );
+                }
                 ImGui::SameLine();
             }
 
             // Render main badge
-            renderBadge( node );
+            if( renderBadge( node ) )
+            {
+                m_navigation.selectedNodeCode = std::string( node.code() );
+            }
 
             // Render Product Type badge if node has one
             auto productTypeOpt = node.productType();
@@ -388,7 +396,10 @@ namespace nfx::vista
             {
                 const auto* productTypeNode = productTypeOpt.value();
                 ImGui::SameLine();
-                renderBadge( *productTypeNode );
+                if( renderBadge( *productTypeNode ) )
+                {
+                    m_navigation.selectedNodeCode = std::string( productTypeNode->code() );
+                }
             }
 
             ImGui::SameLine();
@@ -771,5 +782,20 @@ namespace nfx::vista
 
         ImGui::End();
         ImGui::PopStyleColor();
+    }
+
+    const GmodNode* GmodViewer::selectedNode() const
+    {
+        if( m_navigation.selectedNodeCode.empty() )
+        {
+            return nullptr;
+        }
+
+        const auto& gmod = m_vis.gmod( m_currentVersion );
+        auto nodeOpt = gmod.node( m_navigation.selectedNodeCode );
+
+        const GmodNode* result = nodeOpt.has_value() ? nodeOpt.value() : nullptr;
+
+        return result;
     }
 } // namespace nfx::vista

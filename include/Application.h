@@ -12,6 +12,7 @@ using namespace dnv::vista::sdk;
 namespace nfx::vista
 {
     class GmodViewer;
+    class NodeDetails;
 
     class Application
     {
@@ -36,6 +37,9 @@ namespace nfx::vista
         const VIS& m_vis;
 
         std::unique_ptr<GmodViewer> m_gmodViewer;
+        std::unique_ptr<NodeDetails> m_nodeDetails;
+        
         bool m_showGmodViewer = true;
+        bool m_showNodeDetails = true;
     };
 } // namespace nfx::vista

@@ -1,5 +1,6 @@
 #include "Application.h"
 #include "panels/GmodViewer.h"
+#include "panels/NodeDetails.h"
 
 #include <GLFW/glfw3.h>
 #include <imgui.h>
@@ -62,6 +63,7 @@ namespace nfx::vista
 
         {
             m_gmodViewer = std::make_unique<GmodViewer>( m_vis );
+            m_nodeDetails = std::make_unique<NodeDetails>( m_vis );
         }
 
         return true;
@@ -142,6 +144,7 @@ namespace nfx::vista
             if( ImGui::BeginMenu( "View" ) )
             {
                 ImGui::MenuItem( "Gmod Viewer", nullptr, &m_showGmodViewer );
+                ImGui::MenuItem( "Node Details", nullptr, &m_showNodeDetails );
                 ImGui::EndMenu();
             }
 
@@ -154,6 +157,13 @@ namespace nfx::vista
         if( m_showGmodViewer )
         {
             m_gmodViewer->render();
+        }
+
+        if( m_showNodeDetails )
+        {
+            const GmodNode* selectedNode = m_gmodViewer->selectedNode();
+            m_nodeDetails->setSelectedNode( selectedNode );
+            m_nodeDetails->render();
         }
     }
 
