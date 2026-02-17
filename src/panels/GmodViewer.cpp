@@ -84,6 +84,21 @@ namespace nfx::vista
         ImGui::PopStyleColor( 4 );
         ImGui::PopStyleVar( 2 );
 
+        // Show tooltip on hover with delay
+        if( ImGui::IsItemHovered( ImGuiHoveredFlags_DelayNormal ) )
+        {
+            ImGui::BeginTooltip();
+            ImGui::Text( "Code: %s", node.code().data() );
+            ImGui::Text( "Name: %s", node.metadata().name().data() );
+            if( node.metadata().commonName().has_value() )
+            {
+                ImGui::Text( "Common Name: %s", node.metadata().commonName().value().data() );
+            }
+            ImGui::Text( "Category: %s", node.metadata().category().data() );
+            ImGui::Text( "Type: %s", node.metadata().type().data() );
+            ImGui::EndTooltip();
+        }
+
         return clicked;
     }
 
