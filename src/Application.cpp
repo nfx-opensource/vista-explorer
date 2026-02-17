@@ -109,8 +109,11 @@ namespace nfx::vista
     void Application::renderFrame()
     {
         ImGuiViewport* viewport = ImGui::GetMainViewport();
+
+        const float statusBarHeight = 25.0f;
+
         ImGui::SetNextWindowPos( viewport->WorkPos );
-        ImGui::SetNextWindowSize( viewport->WorkSize );
+        ImGui::SetNextWindowSize( ImVec2( viewport->WorkSize.x, viewport->WorkSize.y - statusBarHeight ) );
         ImGui::SetNextWindowViewport( viewport->ID );
 
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
@@ -165,6 +168,60 @@ namespace nfx::vista
             m_nodeDetails->setSelectedNode( selectedNode );
             m_nodeDetails->render();
         }
+
+        // Render status bar
+        renderStatusBar();
+    }
+
+    void Application::renderStatusBar()
+    {
+        ImGuiViewport* viewport = ImGui::GetMainViewport();
+
+        // Position at bottom of viewport
+        const float statusBarHeight = 25.0f;
+        ImGui::SetNextWindowPos(
+            ImVec2( viewport->WorkPos.x, viewport->WorkPos.y + viewport->WorkSize.y - statusBarHeight ) );
+        ImGui::SetNextWindowSize( ImVec2( viewport->WorkSize.x, statusBarHeight ) );
+        ImGui::SetNextWindowViewport( viewport->ID );
+
+        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+                                       ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
+                                       ImGuiWindowFlags_NoSavedSettings;
+
+        ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 10.0f, 4.0f ) );
+        ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 20.0f, 0.0f ) );
+
+        if( ImGui::Begin( "##StatusBar", nullptr, windowFlags ) )
+        {
+            // Rendering mode
+            ImGui::Text( "Mode: Event-driven" );
+
+            ImGui::SameLine();
+            ImGui::TextDisabled( "|" );
+            ImGui::SameLine();
+
+            // GPU info
+            const GLubyte* renderer = glGetString( GL_RENDERER );
+            ImGui::Text( "GPU: %s", renderer );
+
+            ImGui::SameLine();
+            ImGui::TextDisabled( "|" );
+            ImGui::SameLine();
+
+            // VIS version
+            ImGui::Text( "VIS: %s", VisVersions::toString( m_vis.latest() ).data() );
+
+            ImGui::SameLine();
+            ImGui::TextDisabled( "|" );
+            ImGui::SameLine();
+
+            // Nodes count
+            const auto& gmod = m_vis.gmod( m_vis.latest() );
+            ImGui::Text( "Nodes: %zu", std::distance( gmod.begin(), gmod.end() ) );
+        }
+        ImGui::End();
+
+        ImGui::PopStyleVar( 2 );
     }
 
     void Application::endFrame()

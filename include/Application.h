@@ -31,6 +31,8 @@ namespace nfx::vista
         void renderFrame();
         void endFrame();
 
+        void renderStatusBar();
+
         GLFWwindow* m_window;
         bool m_running = true;
 
@@ -38,7 +40,7 @@ namespace nfx::vista
 
         std::unique_ptr<GmodViewer> m_gmodViewer;
         std::unique_ptr<NodeDetails> m_nodeDetails;
-        
+
         bool m_showGmodViewer = true;
         bool m_showNodeDetails = true;
     };
