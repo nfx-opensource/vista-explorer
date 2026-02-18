@@ -6,6 +6,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <unordered_map>
 
 namespace dnv::vista::sdk
 {
@@ -40,6 +41,9 @@ namespace nfx::vista
         void renderMetadataSection();
         void renderOutputSection( VisVersion version );
 
+        void renderMetadataInput( const char* id, const char* label, char* buffer, size_t bufferSize,
+                                  CodebookName codebook, VisVersion version );
+
         const VIS& m_vis;
         std::function<void()> m_onChanged;
         std::optional<GmodPath> m_currentGmodPath;
@@ -65,5 +69,7 @@ namespace nfx::vista
             std::string generatedLocalId;
             ParsingErrors errors;
         } m_state;
+
+        std::unordered_map<std::string, std::string> m_comboFilters;
     };
 } // namespace nfx::vista
