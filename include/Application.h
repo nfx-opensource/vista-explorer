@@ -5,6 +5,7 @@
 #include <dnv/vista/sdk/VIS.h>
 
 #include <memory>
+#include <optional>
 #include <string>
 
 struct GLFWwindow;
@@ -13,6 +14,7 @@ namespace nfx::vista
 {
     class GmodViewer;
     class NodeDetails;
+    class LocalIdBuilder;
 
     class Application
     {
@@ -50,12 +52,14 @@ namespace nfx::vista
         {
             std::unique_ptr<GmodViewer> gmodViewer;
             std::unique_ptr<NodeDetails> nodeDetails;
+            std::unique_ptr<LocalIdBuilder> localIdBuilder;
         } m_panels;
 
         struct
         {
             bool showGmodViewer = true;
             bool showNodeDetails = true;
+            bool showLocalIdBuilder = true;
         } m_ui;
 
         struct
@@ -64,5 +68,7 @@ namespace nfx::vista
             double lastFrameTime = 0.0;
             double fps = 0.0;
         } m_rendering;
+
+        std::optional<dnv::vista::sdk::GmodPath> m_currentGmodPath;
     };
 } // namespace nfx::vista

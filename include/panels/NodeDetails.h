@@ -14,9 +14,13 @@ namespace nfx::vista
         NodeDetails() = default;
 
         void render();
-        void setSelectedNode( const GmodNode* node );
+
+        void setCurrentGmodPath( const std::optional<GmodPath>& path )
+        {
+            m_currentGmodPath = path;
+        }
 
     private:
-        const GmodNode* m_selectedNode = nullptr;
+        std::optional<GmodPath> m_currentGmodPath;
     };
 } // namespace nfx::vista

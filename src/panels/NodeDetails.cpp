@@ -10,16 +10,11 @@
 
 namespace nfx::vista
 {
-    void NodeDetails::setSelectedNode( const GmodNode* node )
-    {
-        m_selectedNode = node;
-    }
-
     void NodeDetails::render()
     {
         ImGui::Begin( "Node Details" );
 
-        if( !m_selectedNode )
+        if( !m_currentGmodPath.has_value() )
         {
             ImGui::TextDisabled( "No node selected" );
             ImGui::Separator();
@@ -28,7 +23,8 @@ namespace nfx::vista
             return;
         }
 
-        const GmodNode& node = *m_selectedNode;
+        const GmodPath& gmodPath = m_currentGmodPath.value();
+        const GmodNode& node = gmodPath.node();
 
         // Node header
         ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 0.4f, 0.8f, 1.0f, 1.0f ) );
@@ -49,6 +45,23 @@ namespace nfx::vista
         }
 
         ImGui::Separator();
+
+        // Path information
+        ImGui::SeparatorText( "Path" );
+
+        ImGui::Text( "Short Path:" );
+        ImGui::SameLine();
+        ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 0.6f, 1.0f, 0.6f, 1.0f ) );
+        ImGui::TextUnformatted( gmodPath.toString().c_str() );
+        ImGui::PopStyleColor();
+
+        ImGui::Text( "Full Path:" );
+        ImGui::SameLine();
+        ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 0.8f, 0.8f, 0.8f, 1.0f ) );
+        ImGui::TextUnformatted( gmodPath.toFullPathString().c_str() );
+        ImGui::PopStyleColor();
+
+        ImGui::Spacing();
 
         // Basic information
         ImGui::SeparatorText( "Basic Information" );
@@ -80,7 +93,7 @@ namespace nfx::vista
         if( !node.parents().isEmpty() )
         {
             ImGui::Text( "Parents: %zu", node.parents().size() );
-            
+
             if( node.parents().size() > 4 )
             {
                 if( ImGui::TreeNode( "View Parents" ) )
@@ -115,7 +128,7 @@ namespace nfx::vista
         if( !node.children().isEmpty() )
         {
             ImGui::Text( "Children: %zu", node.children().size() );
-            
+
             if( node.children().size() > 4 )
             {
                 if( ImGui::TreeNode( "View Children" ) )

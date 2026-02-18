@@ -21,6 +21,92 @@ namespace nfx::vista
     {
     }
 
+    std::string GmodViewer::buildFullPathString( const GmodNode* node ) const
+    {
+        if( !node )
+        {
+            return "";
+        }
+
+        std::string fullPathStr;
+        std::vector<std::string> pathParts;
+        const GmodNode* current = node;
+
+        // Collect path from node to root
+        while( current )
+        {
+            std::string part( current->code() );
+            if( current->location().has_value() )
+            {
+                part += "-";
+                part += current->location()->value();
+            }
+            pathParts.insert( pathParts.begin(), part );
+
+            if( !current->parents().isEmpty() )
+            {
+                current = current->parents()[0];
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        // Join with '/'
+        for( size_t i = 0; i < pathParts.size(); ++i )
+        {
+            if( i > 0 )
+            {
+                fullPathStr += "/";
+            }
+            fullPathStr += pathParts[i];
+        }
+
+        return fullPathStr;
+    }
+
+    std::optional<GmodPath> GmodViewer::buildGmodPath( const GmodNode* node, VisVersion version ) const
+    {
+        if( !node )
+        {
+            return std::nullopt;
+        }
+
+        std::string fullPathStr = buildFullPathString( node );
+        const auto& gmod = m_vis.gmod( version );
+        const auto& locations = m_vis.locations( version );
+
+        return GmodPath::fromFullPath( fullPathStr, gmod, locations );
+    }
+
+    void GmodViewer::notifyNodeSelection( const GmodNode* node, VisVersion version )
+    {
+        if( !m_onNodeSelected )
+        {
+            return;
+        }
+
+        if( !node )
+        {
+            m_onNodeSelected( std::nullopt );
+            return;
+        }
+
+        auto gmodPathOpt = buildGmodPath( node, version );
+        m_onNodeSelected( gmodPathOpt );
+    }
+
+    void GmodViewer::selectNode( const GmodNode& node, VisVersion version )
+    {
+        m_navigation.selectedNodeCode = std::string( node.code() );
+        notifyNodeSelection( &node, version );
+        if( m_onChanged )
+        {
+            m_onChanged();
+        }
+    }
+
     std::pair<ImVec4, ImVec4> GmodViewer::badgeColors( const GmodNode& node ) const
     {
         std::string_view category = node.metadata().category();
@@ -85,7 +171,9 @@ namespace nfx::vista
         // Show tooltip on hover with delay
         if( ImGui::IsItemHovered( ImGuiHoveredFlags_DelayNormal ) )
         {
+            ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8.0f, 8.0f ) );
             ImGui::BeginTooltip();
+
             ImGui::Text( "Code: %s", node.code().data() );
             ImGui::Text( "Name: %s", node.metadata().name().data() );
             if( node.metadata().commonName().has_value() )
@@ -95,59 +183,24 @@ namespace nfx::vista
             ImGui::Text( "Category: %s", node.metadata().category().data() );
             ImGui::Text( "Type: %s", node.metadata().type().data() );
 
+            const auto& gmod = m_vis.gmod( node.version() );
+            const auto& locations = m_vis.locations( node.version() );
+
+            std::string fullPath = buildFullPathString( &node );
+            auto gmodPathOpt = GmodPath::fromFullPath( fullPath, gmod, locations );
+
+            if( gmodPathOpt.has_value() )
             {
-                // Build and display path
-                std::string fullPath;
-                std::string shortPath;
-
-                // Build full path by walking up the hierarchy
-                std::vector<const GmodNode*> pathNodes;
-                const GmodNode* current = &node;
-
-                // Walk up to root, collecting parents
-                while( !current->parents().isEmpty() )
-                {
-                    pathNodes.push_back( current );
-                    current = current->parents()[0]; // Take first parent
-                }
-                // Add root
-                pathNodes.push_back( current );
-
-                // Build full path (root to node)
-                for( auto it = pathNodes.rbegin(); it != pathNodes.rend(); ++it )
-                {
-                    if( !fullPath.empty() )
-                        fullPath += "/";
-                    fullPath += ( *it )->code();
-                    if( ( *it )->location().has_value() )
-                    {
-                        fullPath += "-";
-                        fullPath += ( *it )->location()->value();
-                    }
-                }
-
-                // Build short path (skip intermediate nodes, show only meaningful ones)
-                // For now, just show last 3 levels
-                size_t startIdx = pathNodes.size() > 3 ? pathNodes.size() - 3 : 0;
-                for( size_t i = startIdx; i < pathNodes.size(); ++i )
-                {
-                    if( i > startIdx )
-                        shortPath += "/";
-                    shortPath += pathNodes[pathNodes.size() - 1 - i]->code();
-                    if( pathNodes[pathNodes.size() - 1 - i]->location().has_value() )
-                    {
-                        shortPath += "-";
-                        shortPath += pathNodes[pathNodes.size() - 1 - i]->location()->value();
-                    }
-                }
-
                 ImGui::Separator();
-                ImGui::TextColored( ImVec4( 0.7f, 0.9f, 1.0f, 1.0f ), "Full Path:" );
-                ImGui::TextWrapped( "%s", fullPath.c_str() );
                 ImGui::TextColored( ImVec4( 0.7f, 0.9f, 1.0f, 1.0f ), "Short Path:" );
-                ImGui::Text( "%s", shortPath.c_str() );
+                ImGui::TextUnformatted( gmodPathOpt->toString().c_str() );
+
+                ImGui::TextColored( ImVec4( 0.7f, 0.9f, 1.0f, 1.0f ), "Full Path:" );
+                ImGui::TextUnformatted( gmodPathOpt->toFullPathString().c_str() );
             }
+
             ImGui::EndTooltip();
+            ImGui::PopStyleVar();
         }
 
         return clicked;
@@ -167,7 +220,7 @@ namespace nfx::vista
         const auto& gmod = m_vis.gmod( version );
 
         // Always show tree
-        renderTree( gmod );
+        renderTree( gmod, version );
 
         ImGui::End();
 
@@ -182,7 +235,10 @@ namespace nfx::vista
         {
             // Search buffer not empty but overlay not shown = clicked outside, clear search
             m_search.buffer[0] = '\0';
-            if( m_onChanged ) m_onChanged();
+            if( m_onChanged )
+            {
+                m_onChanged();
+            }
         }
     }
 
@@ -202,7 +258,10 @@ namespace nfx::vista
         if( strcmp( previousBuffer, m_search.buffer ) != 0 )
         {
             m_search.id++;
-            if( m_onChanged ) m_onChanged();
+            if( m_onChanged )
+            {
+                m_onChanged();
+            }
         }
 
         m_search.boxHasFocus = ImGui::IsItemActive();
@@ -259,7 +318,7 @@ namespace nfx::vista
         }
     }
 
-    void GmodViewer::renderTree( const Gmod& gmod )
+    void GmodViewer::renderTree( const Gmod& gmod, VisVersion version )
     {
         ImGui::BeginChild( "GmodTree", ImVec2( 0, 0 ), true );
 
@@ -406,8 +465,7 @@ namespace nfx::vista
             {
                 if( renderBadge( *parentNode ) )
                 {
-                    m_navigation.selectedNodeCode = std::string( parentNode->code() );
-                    if( m_onChanged ) m_onChanged();
+                    selectNode( *parentNode, version );
                 }
                 ImGui::SameLine();
             }
@@ -415,8 +473,7 @@ namespace nfx::vista
             // Render main badge
             if( renderBadge( node ) )
             {
-                m_navigation.selectedNodeCode = std::string( node.code() );
-                if( m_onChanged ) m_onChanged();
+                selectNode( node, version );
             }
 
             // Render Product Type badge if node has one
@@ -428,8 +485,7 @@ namespace nfx::vista
                 ImGui::SameLine();
                 if( renderBadge( *productTypeNode ) )
                 {
-                    m_navigation.selectedNodeCode = std::string( productTypeNode->code() );
-                    if( m_onChanged ) m_onChanged();
+                    selectNode( *productTypeNode, version );
                 }
             }
 
@@ -637,10 +693,28 @@ namespace nfx::vista
             // Handle click: navigate to node in tree
             if( clicked )
             {
-                m_navigation.selectedNodeCode = clickedNodeCode;
-                m_navigation.scrollToNode = true;
-                m_navigation.expandSelectedNode = true;
-                if( m_onChanged ) m_onChanged();
+                // Find the clicked node
+                const GmodNode* clickedNode = nullptr;
+                for( const GmodNode* pathNode : fullPath )
+                {
+                    if( pathNode->code() == clickedNodeCode )
+                    {
+                        clickedNode = pathNode;
+                        break;
+                    }
+                }
+
+                if( clickedNode )
+                {
+                    m_navigation.selectedNodeCode = clickedNodeCode;
+                    m_navigation.scrollToNode = true;
+                    m_navigation.expandSelectedNode = true;
+                    notifyNodeSelection( clickedNode, version );
+                    if( m_onChanged )
+                    {
+                        m_onChanged();
+                    }
+                }
             }
 
             ImGui::PopID();
@@ -767,10 +841,35 @@ namespace nfx::vista
                 // Handle click: navigate to node in tree
                 if( clicked )
                 {
-                    m_navigation.selectedNodeCode = clickedNodeCode;
-                    m_navigation.scrollToNode = true;
-                    m_navigation.expandSelectedNode = true; // Also expand the selected node if it has children
-                    if( m_onChanged ) m_onChanged();
+                    // Find the clicked node
+                    const GmodNode* clickedNode = nullptr;
+                    if( clickedNodeCode == node.code() )
+                    {
+                        clickedNode = &node;
+                    }
+                    else
+                    {
+                        for( const GmodNode* pathNode : displayPath )
+                        {
+                            if( pathNode->code() == clickedNodeCode )
+                            {
+                                clickedNode = pathNode;
+                                break;
+                            }
+                        }
+                    }
+
+                    if( clickedNode )
+                    {
+                        m_navigation.selectedNodeCode = clickedNodeCode;
+                        m_navigation.scrollToNode = true;
+                        m_navigation.expandSelectedNode = true;
+                        notifyNodeSelection( clickedNode, version );
+                        if( m_onChanged )
+                        {
+                            m_onChanged();
+                        }
+                    }
                     // Don't close search - user must click outside
                 }
 

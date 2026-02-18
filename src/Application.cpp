@@ -1,6 +1,7 @@
 #include "Application.h"
 #include "panels/GmodViewer.h"
 #include "panels/NodeDetails.h"
+#include "panels/LocalIdBuilder.h"
 
 #include <GLFW/glfw3.h>
 #include <imgui.h>
@@ -67,7 +68,17 @@ namespace nfx::vista
         {
             m_panels.gmodViewer = std::make_unique<GmodViewer>( *m_vis.instance );
             m_panels.gmodViewer->setChangeNotifier( [this]() { m_rendering.mode.notifyChange(); } );
+            m_panels.gmodViewer->setNodeSelectionCallback( [this]( std::optional<GmodPath> path ) {
+                m_currentGmodPath = path;
+                m_panels.nodeDetails->setCurrentGmodPath( path );
+                m_panels.localIdBuilder->setCurrentGmodPath( path );
+                m_rendering.mode.notifyChange();
+            } );
+
             m_panels.nodeDetails = std::make_unique<NodeDetails>();
+
+            m_panels.localIdBuilder = std::make_unique<LocalIdBuilder>( *m_vis.instance );
+            m_panels.localIdBuilder->setChangeNotifier( [this]() { m_rendering.mode.notifyChange(); } );
         }
 
         return true;
@@ -166,7 +177,7 @@ namespace nfx::vista
                 auto versions = m_vis.instance->versions();
                 for( size_t i = 0; i < versions.size(); ++i )
                 {
-                    bool isSelected = (i == m_vis.versionIndex);
+                    bool isSelected = ( i == m_vis.versionIndex );
                     if( ImGui::MenuItem( VisVersions::toString( versions[i] ).data(), nullptr, isSelected ) )
                     {
                         m_vis.versionIndex = i;
@@ -187,12 +198,16 @@ namespace nfx::vista
                 {
                     m_rendering.mode.notifyChange();
                 }
-                
+                if( ImGui::MenuItem( "LocalId Builder", nullptr, &m_ui.showLocalIdBuilder ) )
+                {
+                    m_rendering.mode.notifyChange();
+                }
+
                 ImGui::Separator();
                 ImGui::Text( "Rendering Mode" );
                 bool isEventDriven = m_rendering.mode.mode() == RenderingMode::Mode::EventDriven;
                 bool isPolling = m_rendering.mode.mode() == RenderingMode::Mode::Polling;
-                
+
                 if( ImGui::MenuItem( "Event-driven (Low CPU)", nullptr, isEventDriven ) )
                 {
                     m_rendering.mode.setMode( RenderingMode::Mode::EventDriven );
@@ -203,7 +218,7 @@ namespace nfx::vista
                     m_rendering.mode.setMode( RenderingMode::Mode::Polling );
                     m_rendering.mode.notifyChange();
                 }
-                
+
                 ImGui::EndMenu();
             }
 
@@ -220,9 +235,12 @@ namespace nfx::vista
 
         if( m_ui.showNodeDetails )
         {
-            const GmodNode* selectedNode = m_panels.gmodViewer->selectedNode( m_vis.currentVersion );
-            m_panels.nodeDetails->setSelectedNode( selectedNode );
             m_panels.nodeDetails->render();
+        }
+
+        if( m_ui.showLocalIdBuilder )
+        {
+            m_panels.localIdBuilder->render( m_vis.currentVersion );
         }
 
         // Render status bar
