@@ -348,6 +348,7 @@ namespace nfx::vista
                                        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
                                        ImGuiWindowFlags_NoSavedSettings;
 
+        ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 0.0f );
         ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 10.0f, 4.0f ) );
         ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 20.0f, 0.0f ) );
 
@@ -390,7 +391,7 @@ namespace nfx::vista
         }
         ImGui::End();
 
-        ImGui::PopStyleVar( 2 );
+        ImGui::PopStyleVar( 3 );
     }
 
     void Application::endFrame()
