@@ -816,17 +816,19 @@ namespace nfx::vista
 
         // Button to open combo with standard values
         ImGui::SameLine();
-        std::string buttonId = "##btn_" + std::string( id );
-        bool openCombo = ImGui::ArrowButton( buttonId.c_str(), ImGuiDir_Down );
+        char buttonId[32];
+        snprintf( buttonId, sizeof( buttonId ), "##btn_%s", id );
+        bool openCombo = ImGui::ArrowButton( buttonId, ImGuiDir_Down );
 
         // Get cached sorted codebook
         const auto& cachedCodebook = m_codebookCache[codebook];
 
         // Open combo popup
-        std::string popupId = "SelectMetadata##" + std::string( id );
+        char popupId[48];
+        snprintf( popupId, sizeof( popupId ), "SelectMetadata##%s", id );
         if( openCombo )
         {
-            ImGui::OpenPopup( popupId.c_str() );
+            ImGui::OpenPopup( popupId );
             if( m_onChanged )
             {
                 m_onChanged();
@@ -834,7 +836,7 @@ namespace nfx::vista
         }
 
         // Combo popup with filter
-        if( ImGui::BeginPopup( popupId.c_str() ) )
+        if( ImGui::BeginPopup( popupId ) )
         {
             // Get or create filter buffer for this combo
             auto& filterStr = m_comboFilters[id];
@@ -891,7 +893,7 @@ namespace nfx::vista
         else
         {
             // Clear filter when popup is closed
-            if( !ImGui::IsPopupOpen( popupId.c_str() ) )
+            if( !ImGui::IsPopupOpen( popupId ) )
             {
                 m_comboFilters[id].clear();
             }
