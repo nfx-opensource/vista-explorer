@@ -80,6 +80,7 @@ namespace nfx::vista
 
         if( ImGui::IsItemDeactivatedAfterEdit() )
         {
+            m_state.primaryPathDirty = true;
             if( m_onChanged )
             {
                 m_onChanged();
@@ -95,6 +96,7 @@ namespace nfx::vista
 
                 strncpy( m_state.primaryPath, shortPath.c_str(), sizeof( m_state.primaryPath ) - 1 );
                 m_state.primaryPath[sizeof( m_state.primaryPath ) - 1] = '\0';
+                m_state.primaryPathDirty = true;
 
                 if( m_onChanged )
                 {
@@ -103,19 +105,30 @@ namespace nfx::vista
             }
         }
 
-        // Real-time validation: show name or "Invalid"
-        if( m_state.primaryPath[0] != '\0' )
+        // Reparse only when dirty
+        if( m_state.primaryPathDirty )
         {
             const auto& gmod = m_vis.gmod( version );
             const auto& locations = m_vis.locations( version );
             ParsingErrors tempErrors;
-            auto primaryPathOpt = GmodPath::fromShortPath( m_state.primaryPath, gmod, locations, tempErrors );
+            if( m_state.primaryPath[0] != '\0' )
+            {
+                m_state.primaryPathOpt = GmodPath::fromShortPath( m_state.primaryPath, gmod, locations, tempErrors );
+            }
+            else
+            {
+                m_state.primaryPathOpt = std::nullopt;
+            }
+            m_state.primaryPathDirty = false;
+        }
 
-            if( primaryPathOpt.has_value() )
+        // Validation display
+        if( m_state.primaryPath[0] != '\0' )
+        {
+            if( m_state.primaryPathOpt.has_value() )
             {
                 ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 0.3f, 1.0f, 0.3f, 1.0f ) );
-                std::string name( primaryPathOpt->node().metadata().name() );
-                ImGui::TextWrapped( "[OK] %s", name.c_str() );
+                ImGui::TextWrapped( "[OK] %s", m_state.primaryPathOpt->node().metadata().name().data() );
                 ImGui::PopStyleColor();
             }
             else
@@ -141,13 +154,11 @@ namespace nfx::vista
         }
 
         ImGui::InputTextWithHint(
-            "##secondaryPath",
-            "Enter secondary Gmod path",
-            m_state.secondaryPath,
-            sizeof( m_state.secondaryPath ) );
+            "##secondaryPath", "Enter secondary Gmod path", m_state.secondaryPath, sizeof( m_state.secondaryPath ) );
 
         if( ImGui::IsItemDeactivatedAfterEdit() )
         {
+            m_state.secondaryPathDirty = true;
             if( m_onChanged )
             {
                 m_onChanged();
@@ -162,6 +173,7 @@ namespace nfx::vista
                 std::string shortPath = m_currentGmodPath->toString();
                 strncpy( m_state.secondaryPath, shortPath.c_str(), sizeof( m_state.secondaryPath ) - 1 );
                 m_state.secondaryPath[sizeof( m_state.secondaryPath ) - 1] = '\0';
+                m_state.secondaryPathDirty = true;
                 if( m_onChanged )
                 {
                     m_onChanged();
@@ -169,19 +181,31 @@ namespace nfx::vista
             }
         }
 
-        // Real-time validation
-        if( m_state.secondaryPath[0] != '\0' )
+        // Reparse only when dirty
+        if( m_state.secondaryPathDirty )
         {
             const auto& gmod = m_vis.gmod( version );
             const auto& locations = m_vis.locations( version );
             ParsingErrors tempErrors;
-            auto secondaryPathOpt = GmodPath::fromShortPath( m_state.secondaryPath, gmod, locations, tempErrors );
+            if( m_state.secondaryPath[0] != '\0' )
+            {
+                m_state.secondaryPathOpt =
+                    GmodPath::fromShortPath( m_state.secondaryPath, gmod, locations, tempErrors );
+            }
+            else
+            {
+                m_state.secondaryPathOpt = std::nullopt;
+            }
+            m_state.secondaryPathDirty = false;
+        }
 
-            if( secondaryPathOpt.has_value() )
+        // Validation display
+        if( m_state.secondaryPath[0] != '\0' )
+        {
+            if( m_state.secondaryPathOpt.has_value() )
             {
                 ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 0.3f, 1.0f, 0.3f, 1.0f ) );
-                std::string name( secondaryPathOpt->node().metadata().name() );
-                ImGui::TextWrapped( "[OK] %s", name.c_str() );
+                ImGui::TextWrapped( "[OK] %s", m_state.secondaryPathOpt->node().metadata().name().data() );
                 ImGui::PopStyleColor();
             }
             else
@@ -429,13 +453,17 @@ namespace nfx::vista
             if( m_state.locationSide != 0 )
             {
                 ImGui::SameLine( 0, 4 );
-                const char* sideName = m_state.locationSide == 'P' ? "Port" : m_state.locationSide == 'S' ? "Starboard" : "Centre";
+                const char* sideName = m_state.locationSide == 'P'   ? "Port"
+                                       : m_state.locationSide == 'S' ? "Starboard"
+                                                                     : "Centre";
                 ImGui::TextDisabled( "%s", sideName );
             }
             if( m_state.locationVertical != 0 )
             {
                 ImGui::SameLine( 0, 4 );
-                const char* vertName = m_state.locationVertical == 'U' ? "Upper" : m_state.locationVertical == 'L' ? "Lower" : "Middle";
+                const char* vertName = m_state.locationVertical == 'U'   ? "Upper"
+                                       : m_state.locationVertical == 'L' ? "Lower"
+                                                                         : "Middle";
                 ImGui::TextDisabled( "%s", vertName );
             }
             if( m_state.locationTransverse != 0 )
@@ -521,8 +549,7 @@ namespace nfx::vista
         ImGui::NextColumn();
 
         // Column 2
-        renderMetadataInput(
-            "##state", "State", m_state.state, sizeof( m_state.state ), CodebookName::State, version );
+        renderMetadataInput( "##state", "State", m_state.state, sizeof( m_state.state ), CodebookName::State, version );
         ImGui::Spacing();
         renderMetadataInput(
             "##command", "Command", m_state.command, sizeof( m_state.command ), CodebookName::Command, version );
@@ -553,8 +580,6 @@ namespace nfx::vista
         m_state.generatedLocalId.clear();
         m_state.errors = ParsingErrors();
 
-        const auto& gmod = m_vis.gmod( version );
-        const auto& locations = m_vis.locations( version );
         const auto& codebooks = m_vis.codebooks( version );
 
         // Helper lambda to add metadata tag with correct separator (- for standard, ~ for custom)
@@ -582,20 +607,9 @@ namespace nfx::vista
                 str += "/" + std::string( prefix ) + ( isCustom ? "~" : "-" ) + std::string( value );
             };
 
-        // Parse primary and secondary paths once
-        ParsingErrors tempErrors;
-        std::optional<GmodPath> primaryPathOpt;
-        std::optional<GmodPath> secondaryPathOpt;
-
-        if( m_state.primaryPath[0] != '\0' )
-        {
-            primaryPathOpt = GmodPath::fromShortPath( m_state.primaryPath, gmod, locations, tempErrors );
-        }
-
-        if( m_state.hasSecondaryItem && m_state.secondaryPath[0] != '\0' )
-        {
-            secondaryPathOpt = GmodPath::fromShortPath( m_state.secondaryPath, gmod, locations, tempErrors );
-        }
+        // Use cached parsed paths
+        const auto& primaryPathOpt = m_state.primaryPathOpt;
+        const auto& secondaryPathOpt = m_state.secondaryPathOpt;
 
         // Build LocalId string
         std::string localIdStr;

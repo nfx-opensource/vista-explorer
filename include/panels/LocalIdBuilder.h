@@ -65,6 +65,12 @@ namespace nfx::vista
             bool hasSecondaryItem = false;
             bool verboseMode = false;
 
+            // Cached parsed paths — invalidated when path text changes
+            std::optional<GmodPath> primaryPathOpt;
+            std::optional<GmodPath> secondaryPathOpt;
+            bool primaryPathDirty = true;
+            bool secondaryPathDirty = true;
+
             // Metadata tags
             char quantity[128] = {};
             char content[128] = {};
