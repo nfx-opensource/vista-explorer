@@ -14,6 +14,8 @@
 
 #include "panels/GmodViewer.h"
 
+using namespace dnv::vista::sdk;
+
 namespace nfx::vista
 {
     GmodViewer::GmodViewer( const VIS& vis )

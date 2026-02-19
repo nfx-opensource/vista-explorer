@@ -4,8 +4,6 @@
 #include <optional>
 #include <string>
 
-using namespace dnv::vista::sdk;
-
 namespace nfx::vista
 {
     class NodeDetails
@@ -15,12 +13,12 @@ namespace nfx::vista
 
         void render();
 
-        void setCurrentGmodPath( const std::optional<GmodPath>& path )
+        void setCurrentGmodPath( const std::optional<dnv::vista::sdk::GmodPath>& path )
         {
             m_currentGmodPath = path;
         }
 
     private:
-        std::optional<GmodPath> m_currentGmodPath;
+        std::optional<dnv::vista::sdk::GmodPath> m_currentGmodPath;
     };
 } // namespace nfx::vista

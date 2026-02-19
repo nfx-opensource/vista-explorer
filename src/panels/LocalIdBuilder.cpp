@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cctype>
 
+using namespace dnv::vista::sdk;
+
 namespace nfx::vista
 {
     LocalIdBuilder::LocalIdBuilder( const VIS& vis )
@@ -410,7 +412,8 @@ namespace nfx::vista
                 while( !remaining.empty() )
                 {
                     auto slash = remaining.find( '/' );
-                    std::string_view seg = ( slash == std::string_view::npos ) ? remaining : remaining.substr( 0, slash );
+                    std::string_view seg =
+                        ( slash == std::string_view::npos ) ? remaining : remaining.substr( 0, slash );
 
                     if( !newPath.empty() )
                         newPath += '/';
@@ -421,7 +424,8 @@ namespace nfx::vista
                         newPath += builtLocation;
                     }
 
-                    remaining = ( slash == std::string_view::npos ) ? std::string_view{} : remaining.substr( slash + 1 );
+                    remaining =
+                        ( slash == std::string_view::npos ) ? std::string_view{} : remaining.substr( slash + 1 );
                     segN++;
                 }
             }

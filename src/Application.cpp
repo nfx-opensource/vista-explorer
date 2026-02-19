@@ -10,6 +10,8 @@
 
 #include <iostream>
 
+using namespace dnv::vista::sdk;
+
 namespace nfx::vista
 {
     Application::Application()

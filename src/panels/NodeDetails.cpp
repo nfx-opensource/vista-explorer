@@ -8,6 +8,8 @@
 #include "panels/NodeDetails.h"
 #include <imgui.h>
 
+using namespace dnv::vista::sdk;
+
 namespace nfx::vista
 {
     void NodeDetails::render()

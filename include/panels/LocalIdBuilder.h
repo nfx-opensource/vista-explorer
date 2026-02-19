@@ -14,47 +14,45 @@ namespace dnv::vista::sdk
     class LocalId;
 } // namespace dnv::vista::sdk
 
-using namespace dnv::vista::sdk;
-
 namespace nfx::vista
 {
     class LocalIdBuilder
     {
     public:
-        explicit LocalIdBuilder( const VIS& vis );
+        explicit LocalIdBuilder( const dnv::vista::sdk::VIS& vis );
 
-        void render( VisVersion version );
+        void render( dnv::vista::sdk::VisVersion version );
 
         void setChangeNotifier( std::function<void()> notifier )
         {
             m_onChanged = std::move( notifier );
         }
 
-        void setCurrentGmodPath( const std::optional<GmodPath>& path )
+        void setCurrentGmodPath( const std::optional<dnv::vista::sdk::GmodPath>& path )
         {
             m_currentGmodPath = path;
         }
 
     private:
-        void renderPrimaryItemSection( VisVersion version );
-        void renderSecondaryItemSection( VisVersion version );
-        void renderLocationSection( VisVersion version );
-        void renderMetadataSection( VisVersion version );
-        void renderOutputSection( VisVersion version );
+        void renderPrimaryItemSection( dnv::vista::sdk::VisVersion version );
+        void renderSecondaryItemSection( dnv::vista::sdk::VisVersion version );
+        void renderLocationSection( dnv::vista::sdk::VisVersion version );
+        void renderMetadataSection( dnv::vista::sdk::VisVersion version );
+        void renderOutputSection( dnv::vista::sdk::VisVersion version );
 
         void renderMetadataInput(
             const char* id,
             const char* label,
             char* buffer,
             size_t bufferSize,
-            CodebookName codebook );
+            dnv::vista::sdk::CodebookName codebook );
 
-        const VIS& m_vis;
+        const dnv::vista::sdk::VIS& m_vis;
         std::function<void()> m_onChanged;
-        std::optional<GmodPath> m_currentGmodPath;
+        std::optional<dnv::vista::sdk::GmodPath> m_currentGmodPath;
 
-        std::unordered_map<CodebookName, std::vector<std::string>> m_codebookCache;
-        std::optional<VisVersion> m_cachedVersion;
+        std::unordered_map<dnv::vista::sdk::CodebookName, std::vector<std::string>> m_codebookCache;
+        std::optional<dnv::vista::sdk::VisVersion> m_cachedVersion;
 
         // Builder state
         struct
@@ -65,8 +63,8 @@ namespace nfx::vista
             bool verboseMode = false;
 
             // Cached parsed paths — invalidated when path text changes
-            std::optional<GmodPath> primaryPathOpt;
-            std::optional<GmodPath> secondaryPathOpt;
+            std::optional<dnv::vista::sdk::GmodPath> primaryPathOpt;
+            std::optional<dnv::vista::sdk::GmodPath> secondaryPathOpt;
             bool primaryPathDirty = true;
             bool secondaryPathDirty = true;
 
@@ -82,7 +80,7 @@ namespace nfx::vista
 
             // Output
             std::string generatedLocalId;
-            ParsingErrors errors;
+            dnv::vista::sdk::ParsingErrors errors;
 
             // Location builder state
             int locationNumber = 0;      // 0 = none
