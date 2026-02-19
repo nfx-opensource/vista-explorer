@@ -131,75 +131,74 @@ namespace nfx::vista
 
     void LocalIdBuilder::renderSecondaryItemSection( VisVersion version )
     {
-        ImGui::SeparatorText( "Secondary Item (Optional)" );
+        bool isOpen = ImGui::CollapsingHeader( "Secondary Item (Optional)" );
 
-        ImGui::Checkbox( "Add secondary item", &m_state.hasSecondaryItem );
+        m_state.hasSecondaryItem = isOpen;
 
-        if( m_state.hasSecondaryItem )
+        if( !isOpen )
         {
-            ImGui::InputTextWithHint(
-                "##secondaryPath",
-                "Enter secondary Gmod path",
-                m_state.secondaryPath,
-                sizeof( m_state.secondaryPath ) );
+            return;
+        }
 
-            if( ImGui::IsItemDeactivatedAfterEdit() )
+        ImGui::InputTextWithHint(
+            "##secondaryPath",
+            "Enter secondary Gmod path",
+            m_state.secondaryPath,
+            sizeof( m_state.secondaryPath ) );
+
+        if( ImGui::IsItemDeactivatedAfterEdit() )
+        {
+            if( m_onChanged )
             {
+                m_onChanged();
+            }
+        }
+
+        ImGui::SameLine();
+        if( ImGui::Button( "Pick from tree##secondary" ) )
+        {
+            if( m_currentGmodPath.has_value() )
+            {
+                std::string shortPath = m_currentGmodPath->toString();
+                strncpy( m_state.secondaryPath, shortPath.c_str(), sizeof( m_state.secondaryPath ) - 1 );
+                m_state.secondaryPath[sizeof( m_state.secondaryPath ) - 1] = '\0';
                 if( m_onChanged )
                 {
                     m_onChanged();
                 }
             }
-
-            ImGui::SameLine();
-            if( ImGui::Button( "Pick from tree##secondary" ) )
-            {
-                if( m_currentGmodPath.has_value() )
-                {
-                    std::string shortPath = m_currentGmodPath->toString();
-
-                    strncpy( m_state.secondaryPath, shortPath.c_str(), sizeof( m_state.secondaryPath ) - 1 );
-                    m_state.secondaryPath[sizeof( m_state.secondaryPath ) - 1] = '\0';
-
-                    if( m_onChanged )
-                    {
-                        m_onChanged();
-                    }
-                }
-            }
-
-            // Real-time validation: show name or "Invalid"
-            if( m_state.secondaryPath[0] != '\0' )
-            {
-                const auto& gmod = m_vis.gmod( version );
-                const auto& locations = m_vis.locations( version );
-                ParsingErrors tempErrors;
-                auto secondaryPathOpt = GmodPath::fromShortPath( m_state.secondaryPath, gmod, locations, tempErrors );
-
-                if( secondaryPathOpt.has_value() )
-                {
-                    ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 0.3f, 1.0f, 0.3f, 1.0f ) );
-                    std::string name( secondaryPathOpt->node().metadata().name() );
-                    ImGui::TextWrapped( "[OK] %s", name.c_str() );
-                    ImGui::PopStyleColor();
-                }
-                else
-                {
-                    ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 1.0f, 0.3f, 0.3f, 1.0f ) );
-                    ImGui::Text( "[X] Invalid" );
-                    ImGui::PopStyleColor();
-                }
-            }
         }
-        else
+
+        // Real-time validation
+        if( m_state.secondaryPath[0] != '\0' )
         {
-            m_state.secondaryPath[0] = '\0';
+            const auto& gmod = m_vis.gmod( version );
+            const auto& locations = m_vis.locations( version );
+            ParsingErrors tempErrors;
+            auto secondaryPathOpt = GmodPath::fromShortPath( m_state.secondaryPath, gmod, locations, tempErrors );
+
+            if( secondaryPathOpt.has_value() )
+            {
+                ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 0.3f, 1.0f, 0.3f, 1.0f ) );
+                std::string name( secondaryPathOpt->node().metadata().name() );
+                ImGui::TextWrapped( "[OK] %s", name.c_str() );
+                ImGui::PopStyleColor();
+            }
+            else
+            {
+                ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 1.0f, 0.3f, 0.3f, 1.0f ) );
+                ImGui::Text( "[X] Invalid" );
+                ImGui::PopStyleColor();
+            }
         }
     }
 
     void LocalIdBuilder::renderLocationSection( VisVersion version )
     {
-        ImGui::SeparatorText( "Location (Optional)" );
+        if( !ImGui::CollapsingHeader( "Location (Optional)" ) )
+        {
+            return;
+        }
 
         const auto& locations = m_vis.locations( version );
 
@@ -413,7 +412,45 @@ namespace nfx::vista
         if( hasAnyComponent && !builtLocation.empty() )
         {
             ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 0.9f, 0.8f, 0.2f, 1.0f ) );
+
+            // Show compact code
+            ImGui::Text( "Location: " );
+            ImGui::SameLine();
             ImGui::Text( "-%s", builtLocation.c_str() );
+
+            // Show human-readable breakdown
+            ImGui::SameLine();
+            ImGui::TextDisabled( "  (" );
+            if( m_state.locationNumber > 0 )
+            {
+                ImGui::SameLine( 0, 0 );
+                ImGui::TextDisabled( "#%d", m_state.locationNumber );
+            }
+            if( m_state.locationSide != 0 )
+            {
+                ImGui::SameLine( 0, 4 );
+                const char* sideName = m_state.locationSide == 'P' ? "Port" : m_state.locationSide == 'S' ? "Starboard" : "Centre";
+                ImGui::TextDisabled( "%s", sideName );
+            }
+            if( m_state.locationVertical != 0 )
+            {
+                ImGui::SameLine( 0, 4 );
+                const char* vertName = m_state.locationVertical == 'U' ? "Upper" : m_state.locationVertical == 'L' ? "Lower" : "Middle";
+                ImGui::TextDisabled( "%s", vertName );
+            }
+            if( m_state.locationTransverse != 0 )
+            {
+                ImGui::SameLine( 0, 4 );
+                ImGui::TextDisabled( "%s", m_state.locationTransverse == 'I' ? "Inner" : "Outer" );
+            }
+            if( m_state.locationLong != 0 )
+            {
+                ImGui::SameLine( 0, 4 );
+                ImGui::TextDisabled( "%s", m_state.locationLong == 'F' ? "Forward" : "Aft" );
+            }
+            ImGui::SameLine( 0, 0 );
+            ImGui::TextDisabled( ")" );
+
             ImGui::PopStyleColor();
         }
         else
@@ -459,20 +496,23 @@ namespace nfx::vista
 
     void LocalIdBuilder::renderMetadataSection( VisVersion version )
     {
-        ImGui::SeparatorText( "Metadata Tags (Optional)" );
+        ImGui::SeparatorText( "Metadata Tags" );
 
         ImGui::Columns( 2, "metadata", false );
 
         // Column 1
         renderMetadataInput(
-            "##quantity", "Quantity:", m_state.quantity, sizeof( m_state.quantity ), CodebookName::Quantity, version );
+            "##quantity", "Quantity", m_state.quantity, sizeof( m_state.quantity ), CodebookName::Quantity, version );
+        ImGui::Spacing();
         renderMetadataInput(
-            "##content", "Content:", m_state.content, sizeof( m_state.content ), CodebookName::Content, version );
+            "##content", "Content", m_state.content, sizeof( m_state.content ), CodebookName::Content, version );
+        ImGui::Spacing();
         renderMetadataInput(
-            "##position", "Position:", m_state.position, sizeof( m_state.position ), CodebookName::Position, version );
+            "##position", "Position", m_state.position, sizeof( m_state.position ), CodebookName::Position, version );
+        ImGui::Spacing();
         renderMetadataInput(
             "##calculation",
-            "Calculation:",
+            "Calculation",
             m_state.calculation,
             sizeof( m_state.calculation ),
             CodebookName::Calculation,
@@ -482,12 +522,16 @@ namespace nfx::vista
 
         // Column 2
         renderMetadataInput(
-            "##state", "State:", m_state.state, sizeof( m_state.state ), CodebookName::State, version );
+            "##state", "State", m_state.state, sizeof( m_state.state ), CodebookName::State, version );
+        ImGui::Spacing();
         renderMetadataInput(
-            "##command", "Command:", m_state.command, sizeof( m_state.command ), CodebookName::Command, version );
-        renderMetadataInput( "##type", "Type:", m_state.type, sizeof( m_state.type ), CodebookName::Type, version );
+            "##command", "Command", m_state.command, sizeof( m_state.command ), CodebookName::Command, version );
+        ImGui::Spacing();
+        renderMetadataInput( "##type", "Type", m_state.type, sizeof( m_state.type ), CodebookName::Type, version );
+        ImGui::Spacing();
 
-        ImGui::Text( "Detail:" );
+        ImGui::TextDisabled( "Detail" );
+        ImGui::SetNextItemWidth( ImGui::GetContentRegionAvail().x );
         ImGui::InputTextWithHint( "##detail", "Free text...", m_state.detail, sizeof( m_state.detail ) );
 
         ImGui::Columns( 1 );
@@ -709,18 +753,18 @@ namespace nfx::vista
     void LocalIdBuilder::renderMetadataInput(
         const char* id, const char* label, char* buffer, size_t bufferSize, CodebookName codebook, VisVersion version )
     {
-        ImGui::Text( "%s", label );
+        ImGui::TextDisabled( "%s", label );
 
         // Input field for direct editing
-        const float comboButtonWidth = ImGui::CalcTextSize( "..." ).x + ImGui::GetStyle().FramePadding.x * 2.0f;
-        ImGui::PushItemWidth( ImGui::GetContentRegionAvail().x - comboButtonWidth - ImGui::GetStyle().ItemSpacing.x );
+        const float arrowButtonWidth = ImGui::GetFrameHeight();
+        ImGui::PushItemWidth( ImGui::GetContentRegionAvail().x - arrowButtonWidth - ImGui::GetStyle().ItemSpacing.x );
         ImGui::InputTextWithHint( id, "Type custom or select...", buffer, bufferSize );
         ImGui::PopItemWidth();
 
         // Button to open combo with standard values
         ImGui::SameLine();
-        std::string buttonId = "...##" + std::string( id );
-        bool openCombo = ImGui::Button( buttonId.c_str(), ImVec2( comboButtonWidth, 0 ) );
+        std::string buttonId = "##btn_" + std::string( id );
+        bool openCombo = ImGui::ArrowButton( buttonId.c_str(), ImGuiDir_Down );
 
         // Check if we need to rebuild cache for a different version
         if( m_cachedVersion.value() != version )
