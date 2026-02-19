@@ -668,16 +668,19 @@ namespace nfx::vista
         else
         {
             // Build manually if any path is invalid
-            localIdStr = "/dnv-v2/vis-" + std::string( VisVersions::toString( version ) );
+            localIdStr = "/dnv-v2/vis-";
+            localIdStr += VisVersions::toString( version );
 
             if( m_state.primaryPath[0] != '\0' )
             {
-                localIdStr += "/" + std::string( m_state.primaryPath );
+                localIdStr += '/';
+                localIdStr += m_state.primaryPath;
             }
 
             if( m_state.hasSecondaryItem && m_state.secondaryPath[0] != '\0' )
             {
-                localIdStr += "/sec/" + std::string( m_state.secondaryPath );
+                localIdStr += "/sec/";
+                localIdStr += m_state.secondaryPath;
             }
         }
 
