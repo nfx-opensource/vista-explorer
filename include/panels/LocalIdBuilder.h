@@ -90,6 +90,6 @@ namespace nfx::vista
             char locationLong = 0;       // 0 = none, 'F'/'A'
         } m_state;
 
-        std::unordered_map<std::string, std::string> m_comboFilters;
+        std::unordered_map<dnv::vista::sdk::CodebookName, std::string> m_comboFilters;
     };
 } // namespace nfx::vista

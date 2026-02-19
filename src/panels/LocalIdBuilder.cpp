@@ -845,7 +845,7 @@ namespace nfx::vista
         if( ImGui::BeginPopup( popupId ) )
         {
             // Get or create filter buffer for this combo
-            auto& filterStr = m_comboFilters[id];
+            auto& filterStr = m_comboFilters[codebook];
             char filterBuf[256];
             strncpy( filterBuf, filterStr.c_str(), sizeof( filterBuf ) - 1 );
             filterBuf[sizeof( filterBuf ) - 1] = '\0';
@@ -884,7 +884,7 @@ namespace nfx::vista
                 {
                     strncpy( buffer, value.c_str(), bufferSize - 1 );
                     buffer[bufferSize - 1] = '\0';
-                    m_comboFilters[id].clear(); // Clear filter on selection
+                    m_comboFilters[codebook].clear(); // Clear filter on selection
                     ImGui::CloseCurrentPopup();
                 }
                 if( isSelected )
@@ -901,7 +901,7 @@ namespace nfx::vista
             // Clear filter when popup is closed
             if( !ImGui::IsPopupOpen( popupId ) )
             {
-                m_comboFilters[id].clear();
+                m_comboFilters[codebook].clear();
             }
         }
     }
