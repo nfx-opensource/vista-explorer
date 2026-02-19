@@ -38,6 +38,7 @@ namespace nfx::vista
     private:
         void renderPrimaryItemSection( VisVersion version );
         void renderSecondaryItemSection( VisVersion version );
+        void renderLocationSection( VisVersion version );
         void renderMetadataSection( VisVersion version );
         void renderOutputSection( VisVersion version );
 
@@ -77,6 +78,13 @@ namespace nfx::vista
             // Output
             std::string generatedLocalId;
             ParsingErrors errors;
+
+            // Location builder state
+            int locationNumber = 0;      // 0 = none
+            char locationSide = 0;       // 0 = none, 'P'/'C'/'S'
+            char locationVertical = 0;   // 0 = none, 'U'/'M'/'L'
+            char locationTransverse = 0; // 0 = none, 'I'/'O'
+            char locationLong = 0;       // 0 = none, 'F'/'A'
         } m_state;
 
         std::unordered_map<std::string, std::string> m_comboFilters;

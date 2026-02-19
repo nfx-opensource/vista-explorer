@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <sstream>
 
 namespace nfx::vista
 {
@@ -54,6 +55,9 @@ namespace nfx::vista
         ImGui::Spacing();
 
         renderSecondaryItemSection( version );
+        ImGui::Spacing();
+
+        renderLocationSection( version );
         ImGui::Spacing();
 
         renderMetadataSection( version );
@@ -190,6 +194,266 @@ namespace nfx::vista
         else
         {
             m_state.secondaryPath[0] = '\0';
+        }
+    }
+
+    void LocalIdBuilder::renderLocationSection( VisVersion version )
+    {
+        ImGui::SeparatorText( "Location (Optional)" );
+
+        const auto& locations = m_vis.locations( version );
+
+        // Build current location string using LocationBuilder
+        std::string builtLocation;
+        bool hasAnyComponent = false;
+
+        try
+        {
+            auto lb = LocationBuilder::create( locations );
+
+            if( m_state.locationNumber > 0 )
+            {
+                lb = std::move( lb ).withNumber( m_state.locationNumber );
+                hasAnyComponent = true;
+            }
+            if( m_state.locationSide != 0 )
+            {
+                lb = std::move( lb ).withSide( m_state.locationSide );
+                hasAnyComponent = true;
+            }
+            if( m_state.locationVertical != 0 )
+            {
+                lb = std::move( lb ).withVertical( m_state.locationVertical );
+                hasAnyComponent = true;
+            }
+            if( m_state.locationTransverse != 0 )
+            {
+                lb = std::move( lb ).withTransverse( m_state.locationTransverse );
+                hasAnyComponent = true;
+            }
+            if( m_state.locationLong != 0 )
+            {
+                lb = std::move( lb ).withLongitudinal( m_state.locationLong );
+                hasAnyComponent = true;
+            }
+
+            if( hasAnyComponent )
+            {
+                builtLocation = lb.build().value();
+            }
+        }
+        catch( ... )
+        {
+            builtLocation.clear();
+        }
+
+        // Helper: render a group of toggle buttons on a new indented line
+        // Returns true if the value changed.
+        auto renderToggleGroup =
+            [&]( const char* label, char& stateVal, LocationGroup group, const char* btnSuffix, const char* clearId ) {
+                ImGui::Text( "%s:", label );
+                ImGui::Indent();
+                const auto& groups = locations.groups();
+                auto it = groups.find( group );
+                if( it != groups.end() )
+                {
+                    for( const auto& relLoc : it->second )
+                    {
+                        bool selected = ( stateVal == relLoc.code() );
+                        if( selected )
+                        {
+                            ImGui::PushStyleColor( ImGuiCol_Button, ImGui::GetStyleColorVec4( ImGuiCol_ButtonActive ) );
+                        }
+                        std::string btnLabel =
+                            std::string( 1, relLoc.code() ) + "  " + relLoc.name() + "##" + btnSuffix;
+                        if( ImGui::Button( btnLabel.c_str() ) )
+                        {
+                            stateVal = selected ? 0 : relLoc.code();
+                        }
+                        if( selected )
+                        {
+                            ImGui::PopStyleColor();
+                        }
+                        ImGui::SameLine();
+                    }
+                }
+                if( stateVal != 0 )
+                {
+                    if( ImGui::SmallButton( clearId ) )
+                    {
+                        stateVal = 0;
+                    }
+                }
+                ImGui::Unindent();
+                ImGui::Spacing();
+            };
+
+        // --- Number ---
+        ImGui::Text( "Number:" );
+        ImGui::Indent();
+        ImGui::SetNextItemWidth( 60 );
+        if( ImGui::InputInt( "##locNumber", &m_state.locationNumber, 0, 0 ) )
+        {
+            if( m_state.locationNumber < 0 )
+            {
+                m_state.locationNumber = 0;
+            }
+        }
+        if( m_state.locationNumber > 0 )
+        {
+            ImGui::SameLine();
+            if( ImGui::SmallButton( "x##locNum" ) )
+            {
+                m_state.locationNumber = 0;
+            }
+        }
+        ImGui::Unindent();
+        ImGui::Spacing();
+
+        // --- Side / Vertical / Transverse / Longitudinal ---
+        renderToggleGroup( "Side", m_state.locationSide, LocationGroup::Side, "side", "x##locSide" );
+        renderToggleGroup( "Vertical", m_state.locationVertical, LocationGroup::Vertical, "vert", "x##locVert" );
+        renderToggleGroup(
+            "Transverse", m_state.locationTransverse, LocationGroup::Transverse, "trans", "x##locTrans" );
+        renderToggleGroup( "Longitudinal", m_state.locationLong, LocationGroup::Longitudinal, "longi", "x##locLong" );
+
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        // Apply location to the correct individualizable node in the path using the SDK
+        auto applyLocation = [&]( char* pathBuf, size_t bufSize ) {
+            const auto& gmod = m_vis.gmod( version );
+            ParsingErrors tempErr;
+
+            auto pathOpt = GmodPath::fromShortPath( pathBuf, gmod, locations, tempErr );
+            if( !pathOpt.has_value() )
+            {
+                // Can't parse — raw text fallback: put location on first segment
+                std::string pathStr( pathBuf );
+                auto slashPos = pathStr.find( '/' );
+                std::string firstSeg = ( slashPos == std::string::npos ) ? pathStr : pathStr.substr( 0, slashPos );
+                std::string rest = ( slashPos == std::string::npos ) ? "" : pathStr.substr( slashPos );
+                auto dashPos = firstSeg.rfind( '-' );
+                if( dashPos != std::string::npos )
+                {
+                    firstSeg = firstSeg.substr( 0, dashPos );
+                }
+                std::string newPath = firstSeg + "-" + builtLocation + rest;
+                strncpy( pathBuf, newPath.c_str(), bufSize - 1 );
+                pathBuf[bufSize - 1] = '\0';
+                if( m_onChanged )
+                {
+                    m_onChanged();
+                }
+                return;
+            }
+
+            // Get the clean path string (no locations) using the SDK
+            std::string cleanPath = pathOpt->withoutLocations().toString();
+
+            // Find the first individualizable set to know which segment gets the location
+            auto sets = pathOpt->individualizableSets();
+
+            std::string newPath;
+            if( sets.empty() )
+            {
+                // No individualizable set: just use the clean path as-is (no location applicable)
+                newPath = cleanPath;
+            }
+            else
+            {
+                // targetIdx is a fullPath index. Find what short-path segment it maps to.
+                // Build a mapping: fullPath index -> short-path segment index (0-based)
+                int shortSegIdx = 0; // which segment in cleanPath gets the location
+                int shortSeg = 0;
+                const GmodPath& constPath = *pathOpt;
+                for( size_t i = 0; i < constPath.length(); ++i )
+                {
+                    const auto& n = constPath[i];
+                    if( !n.isLeafNode() && i != constPath.length() - 1 )
+                    {
+                        continue;
+                    }
+                    if( (int)i == sets[0].nodeIndices().front() )
+                    {
+                        shortSegIdx = shortSeg;
+                        break;
+                    }
+                    shortSeg++;
+                }
+
+                // Split cleanPath by '/', insert location on shortSegIdx-th segment
+                std::istringstream ss( cleanPath );
+                std::string seg;
+                int segN = 0;
+                while( std::getline( ss, seg, '/' ) )
+                {
+                    if( !newPath.empty() )
+                    {
+                        newPath += "/";
+                    }
+                    newPath += seg;
+                    if( segN == shortSegIdx )
+                    {
+                        newPath += "-" + builtLocation;
+                    }
+                    segN++;
+                }
+            }
+
+            strncpy( pathBuf, newPath.c_str(), bufSize - 1 );
+            pathBuf[bufSize - 1] = '\0';
+            if( m_onChanged )
+            {
+                m_onChanged();
+            }
+        };
+
+        // --- Preview ---
+        if( hasAnyComponent && !builtLocation.empty() )
+        {
+            ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 0.9f, 0.8f, 0.2f, 1.0f ) );
+            ImGui::Text( "-%s", builtLocation.c_str() );
+            ImGui::PopStyleColor();
+        }
+        else
+        {
+            ImGui::TextDisabled( "(no location)" );
+        }
+
+        ImGui::Spacing();
+
+        // --- Apply buttons ---
+        if( hasAnyComponent && !builtLocation.empty() )
+        {
+            if( ImGui::Button( "Apply to Primary" ) )
+            {
+                if( m_state.primaryPath[0] != '\0' )
+                {
+                    applyLocation( m_state.primaryPath, sizeof( m_state.primaryPath ) );
+                }
+            }
+
+            if( m_state.hasSecondaryItem && m_state.secondaryPath[0] != '\0' )
+            {
+                ImGui::SameLine();
+                if( ImGui::Button( "Apply to Secondary" ) )
+                {
+                    applyLocation( m_state.secondaryPath, sizeof( m_state.secondaryPath ) );
+                }
+            }
+
+            ImGui::SameLine();
+        }
+
+        // --- Reset (always visible) ---
+        if( ImGui::Button( "Reset Location" ) )
+        {
+            m_state.locationNumber = 0;
+            m_state.locationSide = 0;
+            m_state.locationVertical = 0;
+            m_state.locationTransverse = 0;
+            m_state.locationLong = 0;
         }
     }
 
@@ -389,7 +653,7 @@ namespace nfx::vista
         // Validate using SDK's fromString() to get detailed errors
         if( !m_state.generatedLocalId.empty() )
         {
-            auto result = LocalId::fromString( m_state.generatedLocalId, m_state.errors );
+            (void)LocalId::fromString( m_state.generatedLocalId, m_state.errors );
         }
 
         ImGui::Spacing(); // LocalId in a read-only input field (always present)
