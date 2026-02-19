@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cctype>
-#include <sstream>
 
 namespace nfx::vista
 {
@@ -406,20 +405,23 @@ namespace nfx::vista
                 }
 
                 // Split cleanPath by '/', insert location on shortSegIdx-th segment
-                std::istringstream ss( cleanPath );
-                std::string seg;
+                std::string_view remaining( cleanPath );
                 int segN = 0;
-                while( std::getline( ss, seg, '/' ) )
+                while( !remaining.empty() )
                 {
+                    auto slash = remaining.find( '/' );
+                    std::string_view seg = ( slash == std::string_view::npos ) ? remaining : remaining.substr( 0, slash );
+
                     if( !newPath.empty() )
-                    {
-                        newPath += "/";
-                    }
+                        newPath += '/';
                     newPath += seg;
                     if( segN == shortSegIdx )
                     {
-                        newPath += "-" + builtLocation;
+                        newPath += '-';
+                        newPath += builtLocation;
                     }
+
+                    remaining = ( slash == std::string_view::npos ) ? std::string_view{} : remaining.substr( slash + 1 );
                     segN++;
                 }
             }
@@ -633,7 +635,10 @@ namespace nfx::vista
                     }
                 }
 
-                str += "/" + std::string( prefix ) + ( isCustom ? "~" : "-" ) + std::string( value );
+                str += '/';
+                str += prefix;
+                str += ( isCustom ? '~' : '-' );
+                str += value;
             };
 
         // Use cached parsed paths
