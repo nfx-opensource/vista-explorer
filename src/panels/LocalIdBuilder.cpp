@@ -345,12 +345,8 @@ namespace nfx::vista
         ImGui::Spacing();
 
         // Apply location to the correct individualizable node in the path using the SDK
-        auto applyLocation = [&]( char* pathBuf, size_t bufSize ) {
-            const auto& gmod = m_vis.gmod( version );
-            ParsingErrors tempErr;
-
-            auto pathOpt = GmodPath::fromShortPath( pathBuf, gmod, locations, tempErr );
-            if( !pathOpt.has_value() )
+        auto applyLocation = [&]( char* pathBuf, size_t bufSize, const std::optional<GmodPath>& cachedPath ) {
+            if( !cachedPath.has_value() )
             {
                 // Can't parse — raw text fallback: put location on first segment
                 std::string pathStr( pathBuf );
@@ -373,10 +369,10 @@ namespace nfx::vista
             }
 
             // Get the clean path string (no locations) using the SDK
-            std::string cleanPath = pathOpt->withoutLocations().toString();
+            std::string cleanPath = cachedPath->withoutLocations().toString();
 
             // Find the first individualizable set to know which segment gets the location
-            auto sets = pathOpt->individualizableSets();
+            auto sets = cachedPath->individualizableSets();
 
             std::string newPath;
             if( sets.empty() )
@@ -390,7 +386,7 @@ namespace nfx::vista
                 // Build a mapping: fullPath index -> short-path segment index (0-based)
                 int shortSegIdx = 0; // which segment in cleanPath gets the location
                 int shortSeg = 0;
-                const GmodPath& constPath = *pathOpt;
+                const GmodPath& constPath = *cachedPath;
                 for( size_t i = 0; i < constPath.length(); ++i )
                 {
                     const auto& n = constPath[i];
@@ -498,23 +494,23 @@ namespace nfx::vista
         if( hasAnyComponent && !builtLocation.empty() )
         {
             if( ImGui::Button( "Apply to Primary" ) )
-            {
-                if( m_state.primaryPath[0] != '\0' )
                 {
-                    applyLocation( m_state.primaryPath, sizeof( m_state.primaryPath ) );
+                    if( m_state.primaryPath[0] != '\0' )
+                    {
+                        applyLocation( m_state.primaryPath, sizeof( m_state.primaryPath ), m_state.primaryPathOpt );
+                        m_state.primaryPathDirty = true;
+                    }
                 }
-            }
 
             if( m_state.hasSecondaryItem && m_state.secondaryPath[0] != '\0' )
-            {
-                ImGui::SameLine();
-                if( ImGui::Button( "Apply to Secondary" ) )
                 {
-                    applyLocation( m_state.secondaryPath, sizeof( m_state.secondaryPath ) );
-                }
-            }
-
-            ImGui::SameLine();
+                    ImGui::SameLine();
+                    if( ImGui::Button( "Apply to Secondary" ) )
+                    {
+                        applyLocation( m_state.secondaryPath, sizeof( m_state.secondaryPath ), m_state.secondaryPathOpt );
+                        m_state.secondaryPathDirty = true;
+                    }
+                }            ImGui::SameLine();
         }
 
         // --- Reset (always visible) ---
