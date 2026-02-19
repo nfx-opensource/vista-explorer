@@ -712,14 +712,15 @@ namespace nfx::vista
         ImGui::Text( "%s", label );
 
         // Input field for direct editing
-        ImGui::PushItemWidth( ImGui::GetContentRegionAvail().x - 30 );
+        const float comboButtonWidth = ImGui::CalcTextSize( "..." ).x + ImGui::GetStyle().FramePadding.x * 2.0f;
+        ImGui::PushItemWidth( ImGui::GetContentRegionAvail().x - comboButtonWidth - ImGui::GetStyle().ItemSpacing.x );
         ImGui::InputTextWithHint( id, "Type custom or select...", buffer, bufferSize );
         ImGui::PopItemWidth();
 
         // Button to open combo with standard values
         ImGui::SameLine();
         std::string buttonId = "...##" + std::string( id );
-        bool openCombo = ImGui::Button( buttonId.c_str(), ImVec2( 25, 0 ) );
+        bool openCombo = ImGui::Button( buttonId.c_str(), ImVec2( comboButtonWidth, 0 ) );
 
         // Check if we need to rebuild cache for a different version
         if( m_cachedVersion.value() != version )
