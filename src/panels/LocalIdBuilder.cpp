@@ -288,9 +288,12 @@ namespace nfx::vista
                         {
                             ImGui::PushStyleColor( ImGuiCol_Button, ImGui::GetStyleColorVec4( ImGuiCol_ButtonActive ) );
                         }
-                        std::string btnLabel =
-                            std::string( 1, relLoc.code() ) + "  " + relLoc.name() + "##" + btnSuffix;
-                        if( ImGui::Button( btnLabel.c_str() ) )
+                        char btnLabel[64];
+                        snprintf( btnLabel, sizeof( btnLabel ), "%c  %.*s##%s",
+                            relLoc.code(),
+                            static_cast<int>( relLoc.name().size() ), relLoc.name().data(),
+                            btnSuffix );
+                        if( ImGui::Button( btnLabel ) )
                         {
                             stateVal = selected ? 0 : relLoc.code();
                         }
