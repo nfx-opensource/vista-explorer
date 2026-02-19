@@ -69,6 +69,9 @@ namespace nfx::vista
             double fps = 0.0;
         } m_rendering;
 
+        std::string m_rendererName;
+        size_t m_nodeCount = 0;
+
         std::optional<dnv::vista::sdk::GmodPath> m_currentGmodPath;
     };
 } // namespace nfx::vista

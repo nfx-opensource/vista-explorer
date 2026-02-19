@@ -9,6 +9,7 @@
 #include <imgui_impl_opengl3.h>
 
 #include <iostream>
+#include <iterator>
 
 using namespace dnv::vista::sdk;
 
@@ -169,6 +170,16 @@ namespace nfx::vista
             m_panels.localIdBuilder->setChangeNotifier( [this]() { m_rendering.mode.notifyChange(); } );
         }
 
+        {
+            if( const GLubyte* renderer = glGetString( GL_RENDERER ) )
+            {
+                m_rendererName = reinterpret_cast<const char*>( renderer );
+            }
+
+            const auto& gmod = m_vis.instance->gmod( m_vis.currentVersion );
+            m_nodeCount = static_cast<size_t>( std::distance( gmod.begin(), gmod.end() ) );
+        }
+
         return true;
     }
 
@@ -270,6 +281,8 @@ namespace nfx::vista
                     {
                         m_vis.versionIndex = i;
                         m_vis.currentVersion = versions[i];
+                        const auto& gmod = m_vis.instance->gmod( m_vis.currentVersion );
+                        m_nodeCount = static_cast<size_t>( std::distance( gmod.begin(), gmod.end() ) );
                         m_rendering.mode.notifyChange();
                     }
                 }
@@ -370,8 +383,7 @@ namespace nfx::vista
             ImGui::SameLine();
 
             // GPU info
-            const GLubyte* renderer = glGetString( GL_RENDERER );
-            ImGui::Text( "GPU: %s", renderer );
+            ImGui::Text( "GPU: %s", m_rendererName.c_str() );
 
             ImGui::SameLine();
             ImGui::TextDisabled( "|" );
@@ -385,8 +397,7 @@ namespace nfx::vista
             ImGui::SameLine();
 
             // Nodes count
-            const auto& gmod = m_vis.instance->gmod( m_vis.currentVersion );
-            ImGui::Text( "Nodes: %zu", std::distance( gmod.begin(), gmod.end() ) );
+            ImGui::Text( "Nodes: %zu", m_nodeCount );
 
             // FPS (in polling and adaptive modes)
             if( m_rendering.mode.mode() != RenderingMode::Mode::EventDriven )
