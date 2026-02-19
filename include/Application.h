@@ -26,9 +26,9 @@ namespace nfx::vista
 
         bool initialize();
         void run();
-        void shutdown();
 
     private:
+        void shutdown();
         void beginFrame();
         void renderFrame();
         void endFrame();
