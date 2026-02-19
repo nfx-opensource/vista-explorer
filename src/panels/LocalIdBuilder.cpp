@@ -558,19 +558,24 @@ namespace nfx::vista
         const auto& codebooks = m_vis.codebooks( version );
 
         // Helper lambda to add metadata tag with correct separator (- for standard, ~ for custom)
+        // Detail always uses '-' regardless of value
         auto addMetadataTag =
             [&codebooks]( std::string& str, const char* prefix, const char* value, CodebookName codebookName ) {
-                const auto& codebook = codebooks[codebookName];
-                const auto& standardValues = codebook.standardValues();
+                bool isCustom = false;
 
-                // Check if value exists in standard values
-                bool isCustom = true;
-                for( const auto& standardValue : standardValues )
+                if( codebookName != CodebookName::Detail )
                 {
-                    if( standardValue == value )
+                    const auto& codebook = codebooks[codebookName];
+                    const auto& standardValues = codebook.standardValues();
+
+                    isCustom = true;
+                    for( const auto& standardValue : standardValues )
                     {
-                        isCustom = false;
-                        break;
+                        if( standardValue == value )
+                        {
+                            isCustom = false;
+                            break;
+                        }
                     }
                 }
 
@@ -641,12 +646,6 @@ namespace nfx::vista
             hasMetadata = true;
         }
 
-        if( m_state.position[0] != '\0' )
-        {
-            addMetadataTag( metadataStr, "pos", m_state.position, CodebookName::Position );
-            hasMetadata = true;
-        }
-
         if( m_state.calculation[0] != '\0' )
         {
             addMetadataTag( metadataStr, "calc", m_state.calculation, CodebookName::Calculation );
@@ -668,6 +667,12 @@ namespace nfx::vista
         if( m_state.type[0] != '\0' )
         {
             addMetadataTag( metadataStr, "type", m_state.type, CodebookName::Type );
+            hasMetadata = true;
+        }
+
+        if( m_state.position[0] != '\0' )
+        {
+            addMetadataTag( metadataStr, "pos", m_state.position, CodebookName::Position );
             hasMetadata = true;
         }
 
