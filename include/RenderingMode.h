@@ -6,20 +6,23 @@ namespace nfx
 {
     /**
      * @brief Rendering mode abstraction for GLFW event handling
-     * @details Supports two modes:
-     *          - EventDriven: glfwWaitEvents() - waits for events, saves CPU
-     *          - Polling: glfwPollEvents() - continuous polling, higher CPU but responsive
+     * @details Supports three modes:
+     *          - EventDriven: glfwWaitEvents() - waits indefinitely for events, ~0% GPU at rest
+     *          - Adaptive:    glfwWaitEventsTimeout() - wakes on events or after a timeout (~10fps
+     *                         cap at rest), balances responsiveness and GPU usage
+     *          - Polling:     glfwPollEvents() - continuous polling, highest CPU/GPU usage
      */
     class RenderingMode
     {
     public:
         enum class Mode
         {
-            EventDriven, ///< Event-driven: wait for events (glfwWaitEvents)
+            Adaptive,    ///< Adaptive: wake on events or timeout, low GPU at rest (glfwWaitEventsTimeout)
+            EventDriven, ///< Event-driven: wait indefinitely for events (glfwWaitEvents)
             Polling      ///< Polling: continuous polling (glfwPollEvents)
         };
 
-        explicit RenderingMode( Mode mode = Mode::EventDriven )
+        explicit RenderingMode( Mode mode = Mode::Adaptive )
             : m_mode{ mode }
         {
         }
@@ -50,6 +53,10 @@ namespace nfx
             {
                 glfwWaitEvents();
             }
+            else if( m_mode == Mode::Adaptive )
+            {
+                glfwWaitEventsTimeout( k_adaptiveTimeoutSeconds );
+            }
             else
             {
                 glfwPollEvents();
@@ -75,10 +82,21 @@ namespace nfx
          */
         const char* modeName() const
         {
-            return m_mode == Mode::EventDriven ? "Event-driven" : "Polling";
+            switch( m_mode )
+            {
+                case Mode::Adaptive:
+                    return "Adaptive";
+                case Mode::EventDriven:
+                    return "Event-driven";
+                case Mode::Polling:
+                    return "Polling";
+            }
+            return "";
         }
 
     private:
+        static constexpr double k_adaptiveTimeoutSeconds = 0.1; ///< Max wait in Adaptive mode (~10fps at rest)
+
         Mode m_mode;
     };
 

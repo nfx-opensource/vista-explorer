@@ -200,8 +200,8 @@ namespace nfx::vista
 
     void Application::beginFrame()
     {
-        // Calculate FPS for polling mode
-        if( m_rendering.mode.mode() == RenderingMode::Mode::Polling )
+        // Calculate FPS for polling and adaptive modes
+        if( m_rendering.mode.mode() != RenderingMode::Mode::EventDriven )
         {
             double currentTime = glfwGetTime();
             if( m_rendering.lastFrameTime > 0.0 )
@@ -292,9 +292,15 @@ namespace nfx::vista
                 ImGui::Separator();
                 ImGui::Text( "Rendering Mode" );
                 bool isEventDriven = m_rendering.mode.mode() == RenderingMode::Mode::EventDriven;
+                bool isAdaptive = m_rendering.mode.mode() == RenderingMode::Mode::Adaptive;
                 bool isPolling = m_rendering.mode.mode() == RenderingMode::Mode::Polling;
 
-                if( ImGui::MenuItem( "Event-driven (Low CPU)", nullptr, isEventDriven ) )
+                if( ImGui::MenuItem( "Adaptive", nullptr, isAdaptive ) )
+                {
+                    m_rendering.mode.setMode( RenderingMode::Mode::Adaptive );
+                    m_rendering.mode.notifyChange();
+                }
+                if( ImGui::MenuItem( "Event-driven (Low GPU)", nullptr, isEventDriven ) )
                 {
                     m_rendering.mode.setMode( RenderingMode::Mode::EventDriven );
                     m_rendering.mode.notifyChange();
@@ -380,8 +386,8 @@ namespace nfx::vista
             const auto& gmod = m_vis.instance->gmod( m_vis.currentVersion );
             ImGui::Text( "Nodes: %zu", std::distance( gmod.begin(), gmod.end() ) );
 
-            // FPS (only in polling mode)
-            if( m_rendering.mode.mode() == RenderingMode::Mode::Polling )
+            // FPS (in polling and adaptive modes)
+            if( m_rendering.mode.mode() != RenderingMode::Mode::EventDriven )
             {
                 ImGui::SameLine();
                 ImGui::TextDisabled( "|" );

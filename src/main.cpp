@@ -17,7 +17,6 @@ int main()
 #ifdef __linux__
     setenv( "__NV_PRIME_RENDER_OFFLOAD", "1", 1 );
     setenv( "__GLX_VENDOR_LIBRARY_NAME", "nvidia", 1 );
-    setenv( "DRI_PRIME", "1", 1 );
 #endif
 
     nfx::vista::Application app;
