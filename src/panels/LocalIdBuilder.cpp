@@ -1,12 +1,40 @@
 #include "panels/LocalIdBuilder.h"
+
 #include <algorithm>
 #include <cctype>
 
 namespace nfx::vista
 {
     LocalIdBuilder::LocalIdBuilder( const VIS& vis )
-        : m_vis( vis )
+        : m_vis{ vis }
     {
+        const auto latestVersion = m_vis.latest();
+        const auto& codebooks = m_vis.codebooks( latestVersion );
+
+        for( const auto& codebookName : { CodebookName::Quantity,
+                                          CodebookName::Content,
+                                          CodebookName::Position,
+                                          CodebookName::Calculation,
+                                          CodebookName::State,
+                                          CodebookName::Command,
+                                          CodebookName::Type,
+                                          CodebookName::Detail } )
+        {
+            const auto& cb = codebooks[codebookName];
+            const auto& standardValues = cb.standardValues();
+
+            std::vector<std::string> sorted;
+            sorted.reserve( standardValues.size() );
+            for( const auto& value : standardValues )
+            {
+                sorted.push_back( value );
+            }
+            std::sort( sorted.begin(), sorted.end() );
+
+            m_codebookCache[codebookName] = std::move( sorted );
+        }
+
+        m_cachedVersion = latestVersion;
     }
 
     void LocalIdBuilder::render( VisVersion version )
@@ -28,7 +56,7 @@ namespace nfx::vista
         renderSecondaryItemSection( version );
         ImGui::Spacing();
 
-        renderMetadataSection();
+        renderMetadataSection( version );
         ImGui::Spacing();
 
         renderOutputSection( version );
@@ -59,7 +87,6 @@ namespace nfx::vista
         {
             if( m_currentGmodPath.has_value() )
             {
-                // Use toString() to get the correct short path (only leaf nodes)
                 std::string shortPath = m_currentGmodPath->toString();
 
                 strncpy( m_state.primaryPath, shortPath.c_str(), sizeof( m_state.primaryPath ) - 1 );
@@ -72,24 +99,26 @@ namespace nfx::vista
             }
         }
 
-        ImGui::SameLine();
-        if( ImGui::Button( "Validate##primary" ) )
+        // Real-time validation: show name or "Invalid"
+        if( m_state.primaryPath[0] != '\0' )
         {
-            if( m_state.primaryPath[0] != '\0' )
+            const auto& gmod = m_vis.gmod( version );
+            const auto& locations = m_vis.locations( version );
+            ParsingErrors tempErrors;
+            auto primaryPathOpt = GmodPath::fromShortPath( m_state.primaryPath, gmod, locations, tempErrors );
+
+            if( primaryPathOpt.has_value() )
             {
-                const auto& gmod = m_vis.gmod( version );
-                const auto& locations = m_vis.locations( version );
-                auto gmodPathOpt = GmodPath::fromShortPath( m_state.primaryPath, gmod, locations, m_state.errors );
-
-                if( gmodPathOpt.has_value() )
-                {
-                    m_state.generatedLocalId = "✓ Valid path: " + gmodPathOpt->toFullPathString();
-                }
-
-                if( m_onChanged )
-                {
-                    m_onChanged();
-                }
+                ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 0.3f, 1.0f, 0.3f, 1.0f ) );
+                std::string name( primaryPathOpt->node().metadata().name() );
+                ImGui::TextWrapped( "[OK] %s", name.c_str() );
+                ImGui::PopStyleColor();
+            }
+            else
+            {
+                ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 1.0f, 0.3f, 0.3f, 1.0f ) );
+                ImGui::Text( "[X] Invalid" );
+                ImGui::PopStyleColor();
             }
         }
 
@@ -135,25 +164,26 @@ namespace nfx::vista
                 }
             }
 
-            ImGui::SameLine();
-            if( ImGui::Button( "Validate##secondary" ) )
+            // Real-time validation: show name or "Invalid"
+            if( m_state.secondaryPath[0] != '\0' )
             {
-                if( m_state.secondaryPath[0] != '\0' )
+                const auto& gmod = m_vis.gmod( version );
+                const auto& locations = m_vis.locations( version );
+                ParsingErrors tempErrors;
+                auto secondaryPathOpt = GmodPath::fromShortPath( m_state.secondaryPath, gmod, locations, tempErrors );
+
+                if( secondaryPathOpt.has_value() )
                 {
-                    const auto& gmod = m_vis.gmod( version );
-                    const auto& locations = m_vis.locations( version );
-                    auto gmodPathOpt =
-                        GmodPath::fromShortPath( m_state.secondaryPath, gmod, locations, m_state.errors );
-
-                    if( gmodPathOpt.has_value() )
-                    {
-                        m_state.generatedLocalId = "✓ Valid path: " + gmodPathOpt->toFullPathString();
-                    }
-
-                    if( m_onChanged )
-                    {
-                        m_onChanged();
-                    }
+                    ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 0.3f, 1.0f, 0.3f, 1.0f ) );
+                    std::string name( secondaryPathOpt->node().metadata().name() );
+                    ImGui::TextWrapped( "[OK] %s", name.c_str() );
+                    ImGui::PopStyleColor();
+                }
+                else
+                {
+                    ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 1.0f, 0.3f, 0.3f, 1.0f ) );
+                    ImGui::Text( "[X] Invalid" );
+                    ImGui::PopStyleColor();
                 }
             }
         }
@@ -163,165 +193,221 @@ namespace nfx::vista
         }
     }
 
-    void LocalIdBuilder::renderMetadataSection()
+    void LocalIdBuilder::renderMetadataSection( VisVersion version )
     {
         ImGui::SeparatorText( "Metadata Tags (Optional)" );
 
         ImGui::Columns( 2, "metadata", false );
 
         // Column 1
-        renderMetadataInput( "##quantity", "Quantity:", m_state.quantity, sizeof( m_state.quantity ),
-                             CodebookName::Quantity, m_vis.latest() );
-        renderMetadataInput( "##content", "Content:", m_state.content, sizeof( m_state.content ),
-                             CodebookName::Content, m_vis.latest() );
-        renderMetadataInput( "##position", "Position:", m_state.position, sizeof( m_state.position ),
-                             CodebookName::Position, m_vis.latest() );
-        renderMetadataInput( "##calculation", "Calculation:", m_state.calculation, sizeof( m_state.calculation ),
-                             CodebookName::Calculation, m_vis.latest() );
+        renderMetadataInput(
+            "##quantity", "Quantity:", m_state.quantity, sizeof( m_state.quantity ), CodebookName::Quantity, version );
+        renderMetadataInput(
+            "##content", "Content:", m_state.content, sizeof( m_state.content ), CodebookName::Content, version );
+        renderMetadataInput(
+            "##position", "Position:", m_state.position, sizeof( m_state.position ), CodebookName::Position, version );
+        renderMetadataInput(
+            "##calculation",
+            "Calculation:",
+            m_state.calculation,
+            sizeof( m_state.calculation ),
+            CodebookName::Calculation,
+            version );
 
         ImGui::NextColumn();
 
         // Column 2
-        renderMetadataInput( "##state", "State:", m_state.state, sizeof( m_state.state ), CodebookName::State,
-                             m_vis.latest() );
-        renderMetadataInput( "##command", "Command:", m_state.command, sizeof( m_state.command ),
-                             CodebookName::Command, m_vis.latest() );
-        renderMetadataInput( "##type", "Type:", m_state.type, sizeof( m_state.type ), CodebookName::Type,
-                             m_vis.latest() );
+        renderMetadataInput(
+            "##state", "State:", m_state.state, sizeof( m_state.state ), CodebookName::State, version );
+        renderMetadataInput(
+            "##command", "Command:", m_state.command, sizeof( m_state.command ), CodebookName::Command, version );
+        renderMetadataInput( "##type", "Type:", m_state.type, sizeof( m_state.type ), CodebookName::Type, version );
 
-        // Detail is free text, no codebook selection
         ImGui::Text( "Detail:" );
         ImGui::InputTextWithHint( "##detail", "Free text...", m_state.detail, sizeof( m_state.detail ) );
 
         ImGui::Columns( 1 );
-
-        ImGui::Spacing();
-        ImGui::TextDisabled( "Tip: Click in a field to see autocomplete. Use arrows to navigate, Enter to select." );
     }
 
     void LocalIdBuilder::renderOutputSection( VisVersion version )
     {
         ImGui::SeparatorText( "Generated LocalId" );
 
-        if( ImGui::Button( "Build LocalId", ImVec2( 150, 0 ) ) )
+        // Checkbox for verbose mode
+        ImGui::Checkbox( "Verbose mode (include common names)", &m_state.verboseMode );
+        ImGui::SameLine();
+        ImGui::TextDisabled( "(?)" );
+        if( ImGui::IsItemHovered() )
         {
-            m_state.generatedLocalId.clear();
-            m_state.errors = ParsingErrors();
+            ImGui::SetTooltip( "Include human-readable node names in the LocalId" );
+        }
 
-            try
+        m_state.generatedLocalId.clear();
+        m_state.errors = ParsingErrors();
+
+        const auto& gmod = m_vis.gmod( version );
+        const auto& locations = m_vis.locations( version );
+        const auto& codebooks = m_vis.codebooks( version );
+
+        // Helper lambda to add metadata tag with correct separator (- for standard, ~ for custom)
+        auto addMetadataTag =
+            [&codebooks]( std::string& str, const char* prefix, const char* value, CodebookName codebookName ) {
+                const auto& codebook = codebooks[codebookName];
+                const auto& standardValues = codebook.standardValues();
+
+                // Check if value exists in standard values
+                bool isCustom = true;
+                for( const auto& standardValue : standardValues )
+                {
+                    if( standardValue == value )
+                    {
+                        isCustom = false;
+                        break;
+                    }
+                }
+
+                str += "/" + std::string( prefix ) + ( isCustom ? "~" : "-" ) + std::string( value );
+            };
+
+        // Parse primary and secondary paths once
+        ParsingErrors tempErrors;
+        std::optional<GmodPath> primaryPathOpt;
+        std::optional<GmodPath> secondaryPathOpt;
+
+        if( m_state.primaryPath[0] != '\0' )
+        {
+            primaryPathOpt = GmodPath::fromShortPath( m_state.primaryPath, gmod, locations, tempErrors );
+        }
+
+        if( m_state.hasSecondaryItem && m_state.secondaryPath[0] != '\0' )
+        {
+            secondaryPathOpt = GmodPath::fromShortPath( m_state.secondaryPath, gmod, locations, tempErrors );
+        }
+
+        // Build LocalId string
+        std::string localIdStr;
+
+        // Use SDK builder if all paths are valid (to support verbose mode)
+        if( primaryPathOpt.has_value() &&
+            ( !m_state.hasSecondaryItem || m_state.secondaryPath[0] == '\0' || secondaryPathOpt.has_value() ) )
+        {
+            auto builder = dnv::vista::sdk::LocalIdBuilder::create( version ).withVerboseMode( m_state.verboseMode );
+            builder = std::move( builder ).withPrimaryItem( *primaryPathOpt );
+
+            if( secondaryPathOpt.has_value() )
             {
-                // Parse primary path
-                const auto& gmod = m_vis.gmod( version );
-                const auto& locations = m_vis.locations( version );
-                const auto& codebooks = m_vis.codebooks( version );
-
-                auto primaryPathOpt = GmodPath::fromShortPath( m_state.primaryPath, gmod, locations, m_state.errors );
-
-                // Start building LocalId
-                auto builder = dnv::vista::sdk::LocalIdBuilder::create( version ).withPrimaryItem( *primaryPathOpt );
-
-                // Add secondary item if present
-                if( m_state.hasSecondaryItem && m_state.secondaryPath[0] != '\0' )
-                {
-                    auto secondaryPathOpt =
-                        GmodPath::fromShortPath( m_state.secondaryPath, gmod, locations, m_state.errors );
-
-                    if( secondaryPathOpt.has_value() )
-                    {
-                        builder = builder.withSecondaryItem( *secondaryPathOpt );
-                    }
-                }
-
-                if( m_state.quantity[0] != '\0' )
-                {
-                    auto tagOpt = codebooks[CodebookName::Quantity].createTag( m_state.quantity );
-                    if( tagOpt.has_value() )
-                    {
-                        builder = builder.withMetadataTag( *tagOpt );
-                    }
-                }
-
-                if( m_state.content[0] != '\0' )
-                {
-                    auto tagOpt = codebooks[CodebookName::Content].createTag( m_state.content );
-                    if( tagOpt.has_value() )
-                    {
-                        builder = builder.withMetadataTag( *tagOpt );
-                    }
-                }
-
-                if( m_state.position[0] != '\0' )
-                {
-                    auto tagOpt = codebooks[CodebookName::Position].createTag( m_state.position );
-                    if( tagOpt.has_value() )
-                    {
-                        builder = builder.withMetadataTag( *tagOpt );
-                    }
-                }
-
-                if( m_state.calculation[0] != '\0' )
-                {
-                    auto tagOpt = codebooks[CodebookName::Calculation].createTag( m_state.calculation );
-                    if( tagOpt.has_value() )
-                    {
-                        builder = builder.withMetadataTag( *tagOpt );
-                    }
-                }
-
-                if( m_state.state[0] != '\0' )
-                {
-                    auto tagOpt = codebooks[CodebookName::State].createTag( m_state.state );
-                    if( tagOpt.has_value() )
-                    {
-                        builder = builder.withMetadataTag( *tagOpt );
-                    }
-                }
-
-                if( m_state.command[0] != '\0' )
-                {
-                    auto tagOpt = codebooks[CodebookName::Command].createTag( m_state.command );
-                    if( tagOpt.has_value() )
-                    {
-                        builder = builder.withMetadataTag( *tagOpt );
-                    }
-                }
-
-                if( m_state.type[0] != '\0' )
-                {
-                    auto tagOpt = codebooks[CodebookName::Type].createTag( m_state.type );
-                    if( tagOpt.has_value() )
-                    {
-                        builder = builder.withMetadataTag( *tagOpt );
-                    }
-                }
-
-                if( m_state.detail[0] != '\0' )
-                {
-                    auto tagOpt = codebooks[CodebookName::Detail].createTag( m_state.detail );
-                    if( tagOpt.has_value() )
-                    {
-                        builder = builder.withMetadataTag( *tagOpt );
-                    }
-                }
-
-                // Build the LocalId if no errors
-                if( !m_state.errors.hasErrors() )
-                {
-                    auto localId = builder.build();
-                    m_state.generatedLocalId = localId.toString();
-                }
-            }
-            catch( const std::exception& e )
-            {
-                m_state.generatedLocalId = std::string( "Exception: " ) + e.what();
+                builder = std::move( builder ).withSecondaryItem( *secondaryPathOpt );
             }
 
-            if( m_onChanged )
+            localIdStr = builder.toString();
+        }
+        else
+        {
+            // Build manually if any path is invalid
+            localIdStr = "/dnv-v2/vis-" + std::string( VisVersions::toString( version ) );
+
+            if( m_state.primaryPath[0] != '\0' )
             {
-                m_onChanged();
+                localIdStr += "/" + std::string( m_state.primaryPath );
+            }
+
+            if( m_state.hasSecondaryItem && m_state.secondaryPath[0] != '\0' )
+            {
+                localIdStr += "/sec/" + std::string( m_state.secondaryPath );
             }
         }
 
+        // Add metadata section
+        bool hasMetadata = false;
+        std::string metadataStr;
+
+        if( m_state.quantity[0] != '\0' )
+        {
+            addMetadataTag( metadataStr, "qty", m_state.quantity, CodebookName::Quantity );
+            hasMetadata = true;
+        }
+
+        if( m_state.content[0] != '\0' )
+        {
+            addMetadataTag( metadataStr, "cnt", m_state.content, CodebookName::Content );
+            hasMetadata = true;
+        }
+
+        if( m_state.position[0] != '\0' )
+        {
+            addMetadataTag( metadataStr, "pos", m_state.position, CodebookName::Position );
+            hasMetadata = true;
+        }
+
+        if( m_state.calculation[0] != '\0' )
+        {
+            addMetadataTag( metadataStr, "calc", m_state.calculation, CodebookName::Calculation );
+            hasMetadata = true;
+        }
+
+        if( m_state.state[0] != '\0' )
+        {
+            addMetadataTag( metadataStr, "state", m_state.state, CodebookName::State );
+            hasMetadata = true;
+        }
+
+        if( m_state.command[0] != '\0' )
+        {
+            addMetadataTag( metadataStr, "cmd", m_state.command, CodebookName::Command );
+            hasMetadata = true;
+        }
+
+        if( m_state.type[0] != '\0' )
+        {
+            addMetadataTag( metadataStr, "type", m_state.type, CodebookName::Type );
+            hasMetadata = true;
+        }
+
+        if( m_state.detail[0] != '\0' )
+        {
+            addMetadataTag( metadataStr, "detail", m_state.detail, CodebookName::Detail );
+            hasMetadata = true;
+        }
+
+        // Add /meta section if not already present
+        if( m_state.primaryPath[0] != '\0' )
+        {
+            // Check if /meta is already in the string (from SDK builder)
+            if( localIdStr.find( "/meta" ) == std::string::npos )
+            {
+                localIdStr += "/meta";
+            }
+
+            if( hasMetadata )
+            {
+                localIdStr += metadataStr;
+            }
+        }
+
+        m_state.generatedLocalId = localIdStr;
+
+        // Validate using SDK's fromString() to get detailed errors
+        if( !m_state.generatedLocalId.empty() )
+        {
+            auto result = LocalId::fromString( m_state.generatedLocalId, m_state.errors );
+        }
+
+        ImGui::Spacing(); // LocalId in a read-only input field (always present)
+        char localIdBuffer[1024];
+        strncpy( localIdBuffer, m_state.generatedLocalId.c_str(), sizeof( localIdBuffer ) - 1 );
+        localIdBuffer[sizeof( localIdBuffer ) - 1] = '\0';
+
+        ImGui::PushItemWidth( -220 );
+        ImGui::InputText( "##localIdOutput", localIdBuffer, sizeof( localIdBuffer ), ImGuiInputTextFlags_ReadOnly );
+        ImGui::PopItemWidth();
+        ImGui::SameLine();
+        if( ImGui::Button( "Copy", ImVec2( 100, 0 ) ) )
+        {
+            if( !m_state.generatedLocalId.empty() )
+            {
+                ImGui::SetClipboardText( m_state.generatedLocalId.c_str() );
+            }
+        }
         ImGui::SameLine();
         if( ImGui::Button( "Clear", ImVec2( 100, 0 ) ) )
         {
@@ -333,36 +419,35 @@ namespace nfx::vista
         }
 
         ImGui::Spacing();
+
+        // Show validation status
         if( m_state.errors.hasErrors() )
         {
             ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 1.0f, 0.3f, 0.3f, 1.0f ) );
-            ImGui::TextWrapped( "%s", m_state.errors.toString().c_str() );
+            ImGui::Text( "Invalid Local ID" );
+            ImGui::Spacing();
+            ImGui::Indent();
+            for( const auto& [type, message] : m_state.errors )
+            {
+                ImGui::TextWrapped( "%s", message.c_str() );
+            }
+            ImGui::Unindent();
             ImGui::PopStyleColor();
         }
         else if( !m_state.generatedLocalId.empty() )
         {
             ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 0.3f, 1.0f, 0.3f, 1.0f ) );
-            ImGui::TextWrapped( "LocalId: %s", m_state.generatedLocalId.c_str() );
+            ImGui::Text( "Valid LocalId" );
             ImGui::PopStyleColor();
-
-            ImGui::SameLine();
-            if( ImGui::Button( "Copy" ) )
-            {
-                ImGui::SetClipboardText( m_state.generatedLocalId.c_str() );
-                if( m_onChanged )
-                {
-                    m_onChanged();
-                }
-            }
         }
     }
 
-    void LocalIdBuilder::renderMetadataInput( const char* id, const char* label, char* buffer, size_t bufferSize,
-                                              CodebookName codebook, VisVersion version )
+    void LocalIdBuilder::renderMetadataInput(
+        const char* id, const char* label, char* buffer, size_t bufferSize, CodebookName codebook, VisVersion version )
     {
         ImGui::Text( "%s", label );
 
-        // Input field for direct editing (custom tags)
+        // Input field for direct editing
         ImGui::PushItemWidth( ImGui::GetContentRegionAvail().x - 30 );
         ImGui::InputTextWithHint( id, "Type custom or select...", buffer, bufferSize );
         ImGui::PopItemWidth();
@@ -372,24 +457,50 @@ namespace nfx::vista
         std::string buttonId = "...##" + std::string( id );
         bool openCombo = ImGui::Button( buttonId.c_str(), ImVec2( 25, 0 ) );
 
-        // Get codebook values
-        const auto& codebooks = m_vis.codebooks( version );
-        const auto& cb = codebooks[codebook];
-        const auto& standardValues = cb.standardValues();
-
-        // Build sorted list
-        std::vector<std::string> sorted;
-        for( const auto& value : standardValues )
+        // Check if we need to rebuild cache for a different version
+        if( m_cachedVersion.value() != version )
         {
-            sorted.push_back( value );
+            m_codebookCache.clear();
+            const auto& codebooks = m_vis.codebooks( version );
+
+            for( const auto& codebookName : { CodebookName::Quantity,
+                                              CodebookName::Content,
+                                              CodebookName::Position,
+                                              CodebookName::Calculation,
+                                              CodebookName::State,
+                                              CodebookName::Command,
+                                              CodebookName::Type,
+                                              CodebookName::Detail } )
+            {
+                const auto& cb = codebooks[codebookName];
+                const auto& standardValues = cb.standardValues();
+
+                std::vector<std::string> sorted;
+                sorted.reserve( standardValues.size() );
+                for( const auto& value : standardValues )
+                {
+                    sorted.push_back( value );
+                }
+                std::sort( sorted.begin(), sorted.end() );
+
+                m_codebookCache[codebookName] = std::move( sorted );
+            }
+
+            m_cachedVersion = version;
         }
-        std::sort( sorted.begin(), sorted.end() );
+
+        // Get cached sorted codebook
+        const auto& cachedCodebook = m_codebookCache[codebook];
 
         // Open combo popup
         std::string popupId = "SelectMetadata##" + std::string( id );
         if( openCombo )
         {
             ImGui::OpenPopup( popupId.c_str() );
+            if( m_onChanged )
+            {
+                m_onChanged();
+            }
         }
 
         // Combo popup with filter
@@ -417,7 +528,7 @@ namespace nfx::vista
             std::string lowerFilter( filterBuf );
             std::transform( lowerFilter.begin(), lowerFilter.end(), lowerFilter.begin(), ::tolower );
 
-            for( const auto& value : sorted )
+            for( const auto& value : cachedCodebook )
             {
                 // Filter
                 if( lowerFilter[0] != '\0' )

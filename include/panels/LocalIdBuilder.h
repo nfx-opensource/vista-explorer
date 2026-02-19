@@ -38,15 +38,23 @@ namespace nfx::vista
     private:
         void renderPrimaryItemSection( VisVersion version );
         void renderSecondaryItemSection( VisVersion version );
-        void renderMetadataSection();
+        void renderMetadataSection( VisVersion version );
         void renderOutputSection( VisVersion version );
 
-        void renderMetadataInput( const char* id, const char* label, char* buffer, size_t bufferSize,
-                                  CodebookName codebook, VisVersion version );
+        void renderMetadataInput(
+            const char* id,
+            const char* label,
+            char* buffer,
+            size_t bufferSize,
+            CodebookName codebook,
+            VisVersion version );
 
         const VIS& m_vis;
         std::function<void()> m_onChanged;
         std::optional<GmodPath> m_currentGmodPath;
+
+        std::unordered_map<CodebookName, std::vector<std::string>> m_codebookCache;
+        std::optional<VisVersion> m_cachedVersion;
 
         // Builder state
         struct
@@ -54,6 +62,7 @@ namespace nfx::vista
             char primaryPath[512] = {};
             char secondaryPath[512] = {};
             bool hasSecondaryItem = false;
+            bool verboseMode = false;
 
             // Metadata tags
             char quantity[128] = {};
