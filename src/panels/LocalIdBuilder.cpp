@@ -526,35 +526,64 @@ namespace nfx::vista
     {
         ImGui::SeparatorText( "Metadata Tags" );
 
+        // Rebuild codebook cache if version changed
+        if( m_cachedVersion.value() != version )
+        {
+            m_codebookCache.clear();
+            const auto& codebooks = m_vis.codebooks( version );
+
+            for( const auto& codebookName : { CodebookName::Quantity,
+                                              CodebookName::Content,
+                                              CodebookName::Position,
+                                              CodebookName::Calculation,
+                                              CodebookName::State,
+                                              CodebookName::Command,
+                                              CodebookName::Type,
+                                              CodebookName::Detail } )
+            {
+                const auto& cb = codebooks[codebookName];
+                const auto& standardValues = cb.standardValues();
+
+                std::vector<std::string> sorted;
+                sorted.reserve( standardValues.size() );
+                for( const auto& value : standardValues )
+                    sorted.push_back( value );
+                std::sort( sorted.begin(), sorted.end() );
+
+                m_codebookCache[codebookName] = std::move( sorted );
+            }
+
+            m_cachedVersion = version;
+        }
+
         ImGui::Columns( 2, "metadata", false );
 
         // Column 1
         renderMetadataInput(
-            "##quantity", "Quantity", m_state.quantity, sizeof( m_state.quantity ), CodebookName::Quantity, version );
+            "##quantity", "Quantity", m_state.quantity, sizeof( m_state.quantity ), CodebookName::Quantity );
         ImGui::Spacing();
         renderMetadataInput(
-            "##content", "Content", m_state.content, sizeof( m_state.content ), CodebookName::Content, version );
+            "##content", "Content", m_state.content, sizeof( m_state.content ), CodebookName::Content );
         ImGui::Spacing();
         renderMetadataInput(
-            "##position", "Position", m_state.position, sizeof( m_state.position ), CodebookName::Position, version );
+            "##position", "Position", m_state.position, sizeof( m_state.position ), CodebookName::Position );
         ImGui::Spacing();
         renderMetadataInput(
             "##calculation",
             "Calculation",
             m_state.calculation,
             sizeof( m_state.calculation ),
-            CodebookName::Calculation,
-            version );
+            CodebookName::Calculation );
 
         ImGui::NextColumn();
 
         // Column 2
-        renderMetadataInput( "##state", "State", m_state.state, sizeof( m_state.state ), CodebookName::State, version );
+        renderMetadataInput( "##state", "State", m_state.state, sizeof( m_state.state ), CodebookName::State );
         ImGui::Spacing();
         renderMetadataInput(
-            "##command", "Command", m_state.command, sizeof( m_state.command ), CodebookName::Command, version );
+            "##command", "Command", m_state.command, sizeof( m_state.command ), CodebookName::Command );
         ImGui::Spacing();
-        renderMetadataInput( "##type", "Type", m_state.type, sizeof( m_state.type ), CodebookName::Type, version );
+        renderMetadataInput( "##type", "Type", m_state.type, sizeof( m_state.type ), CodebookName::Type );
         ImGui::Spacing();
 
         ImGui::TextDisabled( "Detail" );
@@ -770,7 +799,7 @@ namespace nfx::vista
     }
 
     void LocalIdBuilder::renderMetadataInput(
-        const char* id, const char* label, char* buffer, size_t bufferSize, CodebookName codebook, VisVersion version )
+        const char* id, const char* label, char* buffer, size_t bufferSize, CodebookName codebook )
     {
         ImGui::TextDisabled( "%s", label );
 
@@ -784,38 +813,6 @@ namespace nfx::vista
         ImGui::SameLine();
         std::string buttonId = "##btn_" + std::string( id );
         bool openCombo = ImGui::ArrowButton( buttonId.c_str(), ImGuiDir_Down );
-
-        // Check if we need to rebuild cache for a different version
-        if( m_cachedVersion.value() != version )
-        {
-            m_codebookCache.clear();
-            const auto& codebooks = m_vis.codebooks( version );
-
-            for( const auto& codebookName : { CodebookName::Quantity,
-                                              CodebookName::Content,
-                                              CodebookName::Position,
-                                              CodebookName::Calculation,
-                                              CodebookName::State,
-                                              CodebookName::Command,
-                                              CodebookName::Type,
-                                              CodebookName::Detail } )
-            {
-                const auto& cb = codebooks[codebookName];
-                const auto& standardValues = cb.standardValues();
-
-                std::vector<std::string> sorted;
-                sorted.reserve( standardValues.size() );
-                for( const auto& value : standardValues )
-                {
-                    sorted.push_back( value );
-                }
-                std::sort( sorted.begin(), sorted.end() );
-
-                m_codebookCache[codebookName] = std::move( sorted );
-            }
-
-            m_cachedVersion = version;
-        }
 
         // Get cached sorted codebook
         const auto& cachedCodebook = m_codebookCache[codebook];

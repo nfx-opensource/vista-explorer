@@ -47,8 +47,7 @@ namespace nfx::vista
             const char* label,
             char* buffer,
             size_t bufferSize,
-            CodebookName codebook,
-            VisVersion version );
+            CodebookName codebook );
 
         const VIS& m_vis;
         std::function<void()> m_onChanged;
