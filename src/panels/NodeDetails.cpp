@@ -32,7 +32,7 @@ namespace nfx::vista
         ImGui::PopStyleColor();
 
         ImGui::SameLine();
-        ImGui::TextDisabled( "—" );
+        ImGui::TextDisabled( ">" );
         ImGui::SameLine();
 
         if( node.metadata().commonName().has_value() )
