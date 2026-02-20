@@ -1,5 +1,5 @@
 #include "panels/ProjectManager.h"
-#include "Theme.h"
+#include "config/Theme.h"
 
 #include <dnv/vista/sdk/ImoNumber.h>
 #include <dnv/vista/sdk/transport/ShipId.h>

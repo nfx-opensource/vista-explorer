@@ -1,5 +1,5 @@
 #include "Application.h"
-#include "Theme.h"
+#include "config/Theme.h"
 #include "panels/GmodViewer.h"
 #include "panels/NodeDetails.h"
 #include "panels/LocalIdBuilder.h"
@@ -299,15 +299,7 @@ namespace nfx::vista
         }
         else if( m_layoutNeedsSetup )
         {
-            // Only apply default layout if no saved state was restored from imgui.ini
-            ImGuiDockNode* node = ImGui::DockBuilderGetNode( dockspaceId );
-            bool hasRestoredLayout = node != nullptr && ( node->ChildNodes[0] != nullptr || !node->Windows.empty() );
-
-            if( !hasRestoredLayout )
-            {
-                setupDefaultLayout( dockspaceId );
-            }
-
+            setupDefaultLayout( dockspaceId );
             m_layoutNeedsSetup = false;
         }
 

@@ -6,7 +6,8 @@
  */
 
 #include "panels/NodeDetails.h"
-#include "Theme.h"
+#include "config/Theme.h"
+
 #include <imgui.h>
 
 using namespace dnv::vista::sdk;

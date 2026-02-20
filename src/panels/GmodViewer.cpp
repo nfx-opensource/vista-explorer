@@ -13,7 +13,7 @@
  */
 
 #include "panels/GmodViewer.h"
-#include "Theme.h"
+#include "config/Theme.h"
 
 #include <misc/cpp/imgui_stdlib.h>
 
