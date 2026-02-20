@@ -103,6 +103,7 @@ set(APP_SOURCES
     src/panels/GmodViewer.cpp
     src/panels/NodeDetails.cpp
     src/panels/LocalIdBuilder.cpp
+    src/ProjectSerializer.cpp
     src/Application.cpp
     ${IMGUI_SOURCES}
 )
@@ -112,6 +113,10 @@ set(APP_SOURCES
 #----------------------------------------------
 
 add_executable(${PROJECT_NAME} ${APP_SOURCES})
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    APP_NAME="${PROJECT_NAME}"
+)
 
 #----------------------------------------------
 # Include directories
