@@ -258,8 +258,7 @@ namespace nfx::vista
 
         std::string previousBuffer = m_search.buffer;
 
-        ImGui::InputTextWithHint(
-            "##search", "Search nodes (code or name)...", &m_search.buffer );
+        ImGui::InputTextWithHint( "##search", "Search nodes (code or name)...", &m_search.buffer );
 
         // Increment search ID when buffer changes (new search) to force window reordering
         if( previousBuffer != m_search.buffer )
@@ -303,11 +302,11 @@ namespace nfx::vista
                 ImGui::PopID();
             };
 
-            renderColorBadge( ImVec4( 0.0f, 0.5f, 0.0f, 1.0f ), "Dark green - Function GROUP" );
-            renderColorBadge( ImVec4( 0.0f, 1.0f, 0.0f, 1.0f ), "Lime green - ASSET FUNCTION LEAF" );
-            renderColorBadge( ImVec4( 0.6f, 0.8f, 0.0f, 1.0f ), "Yellow-green - PRODUCT FUNCTION (composition)" );
-            renderColorBadge( ImVec4( 0.8f, 1.0f, 0.8f, 1.0f ), "Light green - PRODUCT FUNCTION (leaf)" );
-            renderColorBadge( ImVec4( 0.9f, 0.2f, 0.2f, 1.0f ), "Red - PRODUCT TYPE" );
+            renderColorBadge( ImVec4( 0.0f, 0.5f, 0.0f, 1.0f ), "ASSET FUNCTION GROUP" );
+            renderColorBadge( ImVec4( 0.0f, 1.0f, 0.0f, 1.0f ), "ASSET FUNCTION LEAF" );
+            renderColorBadge( ImVec4( 0.6f, 0.8f, 0.0f, 1.0f ), "PRODUCT FUNCTION COMPOSITION" );
+            renderColorBadge( ImVec4( 0.8f, 1.0f, 0.8f, 1.0f ), "PRODUCT FUNCTION LEAF" );
+            renderColorBadge( ImVec4( 0.9f, 0.2f, 0.2f, 1.0f ), "PRODUCT TYPE" );
 
             ImGui::Spacing();
 
