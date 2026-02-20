@@ -113,7 +113,11 @@ set(APP_SOURCES
 # Executable target
 #----------------------------------------------
 
-add_executable(${PROJECT_NAME} ${APP_SOURCES})
+add_executable(${PROJECT_NAME} WIN32 ${APP_SOURCES})
+
+if(WIN32)
+    target_link_options(${PROJECT_NAME} PRIVATE /ENTRY:mainCRTStartup)
+endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     APP_NAME="${PROJECT_NAME}"
