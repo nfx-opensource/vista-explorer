@@ -15,6 +15,7 @@ namespace nfx::vista
     class GmodViewer;
     class NodeDetails;
     class LocalIdBuilder;
+    class ProjectManager;
 
     class Application
     {
@@ -53,6 +54,7 @@ namespace nfx::vista
             std::unique_ptr<GmodViewer> gmodViewer;
             std::unique_ptr<NodeDetails> nodeDetails;
             std::unique_ptr<LocalIdBuilder> localIdBuilder;
+            std::unique_ptr<ProjectManager> projectManager;
         } m_panels;
 
         struct
@@ -60,6 +62,7 @@ namespace nfx::vista
             bool showGmodViewer = true;
             bool showNodeDetails = true;
             bool showLocalIdBuilder = true;
+            bool showProjectManager = true;
         } m_ui;
 
         struct

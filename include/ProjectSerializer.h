@@ -6,6 +6,7 @@
 #include <dnv/vista/sdk/transport/ShipId.h>
 
 #include <filesystem>
+#include <optional>
 
 namespace nfx::vista
 {
@@ -13,7 +14,7 @@ namespace nfx::vista
     {
     public:
         static std::filesystem::path defaultDir();
-        static bool load( const std::string& path, Project& out );
+        static std::optional<Project> load( const std::string& path );
         static bool save( const Project& p, const std::string& path );
     };
 } // namespace nfx::vista

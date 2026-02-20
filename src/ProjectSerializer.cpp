@@ -58,12 +58,12 @@ namespace nfx::vista
         return dir;
     }
 
-    bool ProjectSerializer::load( const std::string& path, Project& out )
+    std::optional<Project> ProjectSerializer::load( const std::string& path )
     {
         std::ifstream f( path );
         if( !f )
         {
-            return false;
+            return std::nullopt;
         }
 
         std::ostringstream ss;
@@ -72,42 +72,40 @@ namespace nfx::vista
         nfx::json::Document doc;
         if( !nfx::json::Document::fromString( ss.str(), doc ) )
         {
-            return false;
+            return std::nullopt;
         }
 
         // --- shipId (mandatory) ---
         const auto* shipIdNode = doc.find( "shipId" );
         if( !shipIdNode )
         {
-            return false;
+            return std::nullopt;
         }
 
         auto shipIdStr = shipIdNode->root<std::string>();
         if( !shipIdStr )
         {
-            return false;
+            return std::nullopt;
         }
 
         auto shipId = dnv::vista::sdk::ShipId::fromString( *shipIdStr );
         if( !shipId )
         {
-            return false;
+            return std::nullopt;
         }
 
         // --- name ---
         std::string name;
         if( const auto* n = doc.find( "name" ) )
         {
-            auto v = n->root<std::string>();
-            if( v )
+            if( auto v = n->root<std::string>() )
             {
                 name = std::move( *v );
             }
         }
 
-        // Assign mandatory fields first
-        out.shipId = std::move( *shipId );
-        out.name = std::move( name );
+        // Construct with mandatory fields
+        Project out{ std::move( name ), std::move( *shipId ) };
         out.filePath = path;
         out.isDirty = false;
 
@@ -168,7 +166,7 @@ namespace nfx::vista
             readDouble( "netTonnage", s.netTonnage );
         }
 
-        return true;
+        return out;
     }
 
     bool ProjectSerializer::save( const Project& p, const std::string& path )

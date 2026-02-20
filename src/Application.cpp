@@ -2,6 +2,7 @@
 #include "panels/GmodViewer.h"
 #include "panels/NodeDetails.h"
 #include "panels/LocalIdBuilder.h"
+#include "panels/ProjectManager.h"
 
 #include <GLFW/glfw3.h>
 #include <imgui.h>
@@ -168,6 +169,9 @@ namespace nfx::vista
 
             m_panels.localIdBuilder = std::make_unique<LocalIdBuilder>( *m_vis.instance );
             m_panels.localIdBuilder->setChangeNotifier( [this]() { m_rendering.mode.notifyChange(); } );
+
+            m_panels.projectManager = std::make_unique<ProjectManager>();
+            m_panels.projectManager->setChangeNotifier( [this]() { m_rendering.mode.notifyChange(); } );
         }
 
         {
@@ -303,6 +307,10 @@ namespace nfx::vista
                 {
                     m_rendering.mode.notifyChange();
                 }
+                if( ImGui::MenuItem( "Project Manager", nullptr, &m_ui.showProjectManager ) )
+                {
+                    m_rendering.mode.notifyChange();
+                }
 
                 ImGui::Separator();
                 ImGui::Text( "Rendering Mode" );
@@ -348,6 +356,11 @@ namespace nfx::vista
         if( m_ui.showLocalIdBuilder )
         {
             m_panels.localIdBuilder->render( m_vis.currentVersion );
+        }
+
+        if( m_ui.showProjectManager )
+        {
+            m_panels.projectManager->render();
         }
 
         // Render status bar
