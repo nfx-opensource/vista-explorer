@@ -1,4 +1,5 @@
 #include "panels/LocalIdBuilder.h"
+#include "Theme.h"
 
 #include <misc/cpp/imgui_stdlib.h>
 
@@ -76,9 +77,7 @@ namespace nfx::vista
         ImGui::SeparatorText( "Primary Item (Required)" );
 
         ImGui::InputTextWithHint(
-            "##primaryPath",
-            "Enter Gmod path (e.g., 411.1-1P or 612.21/C701.13)",
-            &m_state.primaryPath );
+            "##primaryPath", "Enter Gmod path (e.g., 411.1-1P or 612.21/C701.13)", &m_state.primaryPath );
 
         if( ImGui::IsItemDeactivatedAfterEdit() )
         {
@@ -126,13 +125,13 @@ namespace nfx::vista
         {
             if( m_state.primaryPathOpt.has_value() )
             {
-                ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 0.3f, 1.0f, 0.3f, 1.0f ) );
+                ImGui::PushStyleColor( ImGuiCol_Text, Theme::TextSuccess );
                 ImGui::TextWrapped( "[OK] %s", m_state.primaryPathOpt->node().metadata().name().data() );
                 ImGui::PopStyleColor();
             }
             else
             {
-                ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 1.0f, 0.3f, 0.3f, 1.0f ) );
+                ImGui::PushStyleColor( ImGuiCol_Text, Theme::TextError );
                 ImGui::Text( "[X] Invalid" );
                 ImGui::PopStyleColor();
             }
@@ -152,8 +151,7 @@ namespace nfx::vista
             return;
         }
 
-        ImGui::InputTextWithHint(
-            "##secondaryPath", "Enter secondary Gmod path", &m_state.secondaryPath );
+        ImGui::InputTextWithHint( "##secondaryPath", "Enter secondary Gmod path", &m_state.secondaryPath );
 
         if( ImGui::IsItemDeactivatedAfterEdit() )
         {
@@ -201,13 +199,13 @@ namespace nfx::vista
         {
             if( m_state.secondaryPathOpt.has_value() )
             {
-                ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 0.3f, 1.0f, 0.3f, 1.0f ) );
+                ImGui::PushStyleColor( ImGuiCol_Text, Theme::TextSuccess );
                 ImGui::TextWrapped( "[OK] %s", m_state.secondaryPathOpt->node().metadata().name().data() );
                 ImGui::PopStyleColor();
             }
             else
             {
-                ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 1.0f, 0.3f, 0.3f, 1.0f ) );
+                ImGui::PushStyleColor( ImGuiCol_Text, Theme::TextError );
                 ImGui::Text( "[X] Invalid" );
                 ImGui::PopStyleColor();
             }
@@ -437,7 +435,7 @@ namespace nfx::vista
         // --- Preview ---
         if( hasAnyComponent && !builtLocation.empty() )
         {
-            ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 0.9f, 0.8f, 0.2f, 1.0f ) );
+            ImGui::PushStyleColor( ImGuiCol_Text, Theme::TextWarning );
 
             // Show compact code
             ImGui::Text( "Location: " );
@@ -563,28 +561,20 @@ namespace nfx::vista
         ImGui::Columns( 2, "metadata", false );
 
         // Column 1
-        renderMetadataInput(
-            "##quantity", "Quantity", m_state.quantity, CodebookName::Quantity );
+        renderMetadataInput( "##quantity", "Quantity", m_state.quantity, CodebookName::Quantity );
         ImGui::Spacing();
-        renderMetadataInput(
-            "##content", "Content", m_state.content, CodebookName::Content );
+        renderMetadataInput( "##content", "Content", m_state.content, CodebookName::Content );
         ImGui::Spacing();
-        renderMetadataInput(
-            "##position", "Position", m_state.position, CodebookName::Position );
+        renderMetadataInput( "##position", "Position", m_state.position, CodebookName::Position );
         ImGui::Spacing();
-        renderMetadataInput(
-            "##calculation",
-            "Calculation",
-            m_state.calculation,
-            CodebookName::Calculation );
+        renderMetadataInput( "##calculation", "Calculation", m_state.calculation, CodebookName::Calculation );
 
         ImGui::NextColumn();
 
         // Column 2
         renderMetadataInput( "##state", "State", m_state.state, CodebookName::State );
         ImGui::Spacing();
-        renderMetadataInput(
-            "##command", "Command", m_state.command, CodebookName::Command );
+        renderMetadataInput( "##command", "Command", m_state.command, CodebookName::Command );
         ImGui::Spacing();
         renderMetadataInput( "##type", "Type", m_state.type, CodebookName::Type );
         ImGui::Spacing();
@@ -784,7 +774,7 @@ namespace nfx::vista
         // Show validation status
         if( m_state.errors.hasErrors() )
         {
-            ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 1.0f, 0.3f, 0.3f, 1.0f ) );
+            ImGui::PushStyleColor( ImGuiCol_Text, Theme::TextError );
             ImGui::Text( "Invalid Local ID" );
             ImGui::Spacing();
             ImGui::Indent();
@@ -797,7 +787,7 @@ namespace nfx::vista
         }
         else if( !m_state.generatedLocalId.empty() )
         {
-            ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 0.3f, 1.0f, 0.3f, 1.0f ) );
+            ImGui::PushStyleColor( ImGuiCol_Text, Theme::TextSuccess );
             ImGui::Text( "Valid LocalId" );
             ImGui::PopStyleColor();
         }

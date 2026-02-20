@@ -13,6 +13,7 @@
  */
 
 #include "panels/GmodViewer.h"
+#include "Theme.h"
 
 #include <misc/cpp/imgui_stdlib.h>
 
@@ -200,10 +201,10 @@ namespace nfx::vista
             if( gmodPathOpt.has_value() )
             {
                 ImGui::Separator();
-                ImGui::TextColored( ImVec4( 0.7f, 0.9f, 1.0f, 1.0f ), "Short Path:" );
+                ImGui::TextColored( Theme::TextLabel, "Short Path:" );
                 ImGui::TextUnformatted( gmodPathOpt->toString().c_str() );
 
-                ImGui::TextColored( ImVec4( 0.7f, 0.9f, 1.0f, 1.0f ), "Full Path:" );
+                ImGui::TextColored( Theme::TextLabel, "Full Path:" );
                 ImGui::TextUnformatted( gmodPathOpt->toFullPathString().c_str() );
             }
 
@@ -900,7 +901,7 @@ namespace nfx::vista
         ImGui::SetNextWindowPos( overlayPos, ImGuiCond_Always );
         ImGui::SetNextWindowSizeConstraints( ImVec2( m_search.boxSize.x, 0 ), ImVec2( m_search.boxSize.x, maxHeight ) );
 
-        ImGui::PushStyleColor( ImGuiCol_WindowBg, ImVec4( 0.15f, 0.15f, 0.15f, 0.90f ) );
+        ImGui::PushStyleColor( ImGuiCol_WindowBg, Theme::OverlayBg );
 
         ImGui::Begin(
             "SearchOverlay",

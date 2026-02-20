@@ -56,5 +56,4 @@ namespace nfx::vista
         std::string filePath; // Empty until first save
         bool isDirty = false;
     };
-
 } // namespace nfx::vista

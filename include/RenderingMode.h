@@ -99,5 +99,4 @@ namespace nfx
 
         Mode m_mode;
     };
-
 } // namespace nfx

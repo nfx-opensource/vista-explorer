@@ -1,4 +1,5 @@
 #include "Application.h"
+#include "Theme.h"
 #include "panels/GmodViewer.h"
 #include "panels/NodeDetails.h"
 #include "panels/LocalIdBuilder.h"
@@ -86,70 +87,59 @@ namespace nfx::vista
             // --- Colors ---
             ImVec4* c = style.Colors;
 
-            // Palette
-            const ImVec4 bg0 = ImVec4( 0.14f, 0.14f, 0.14f, 1.00f ); // darkest bg (frames, scrollbar)
-            const ImVec4 bg1 = ImVec4( 0.18f, 0.18f, 0.18f, 1.00f ); // panel bg, child bg
-            const ImVec4 bg2 = ImVec4( 0.22f, 0.22f, 0.22f, 1.00f ); // window bg
-            const ImVec4 bg3 = ImVec4( 0.30f, 0.30f, 0.30f, 1.00f ); // buttons, interactive
-            const ImVec4 bg4 = ImVec4( 0.40f, 0.40f, 0.40f, 1.00f ); // scrollbar grab, hover
-            const ImVec4 border = ImVec4( 0.35f, 0.35f, 0.35f, 1.00f );
-            const ImVec4 accent = ImVec4( 0.29f, 0.60f, 1.00f, 1.00f ); // blue
-            const ImVec4 accentBright = ImVec4( 0.40f, 0.70f, 1.00f, 1.00f );
-            const ImVec4 accentDark = ImVec4( 0.20f, 0.48f, 0.90f, 1.00f );
+            c[ImGuiCol_WindowBg] = Theme::Bg2;
+            c[ImGuiCol_ChildBg] = Theme::Bg1;
+            c[ImGuiCol_PopupBg] = ImVec4( Theme::Bg2.x, Theme::Bg2.y, Theme::Bg2.z, 0.98f );
+            c[ImGuiCol_Border] = Theme::Border;
 
-            c[ImGuiCol_WindowBg] = bg2;
-            c[ImGuiCol_ChildBg] = bg1;
-            c[ImGuiCol_PopupBg] = ImVec4( bg2.x, bg2.y, bg2.z, 0.98f );
-            c[ImGuiCol_Border] = border;
-
-            c[ImGuiCol_FrameBg] = bg0;
+            c[ImGuiCol_FrameBg] = Theme::Bg0;
             c[ImGuiCol_FrameBgHovered] = ImVec4( 0.20f, 0.20f, 0.20f, 1.00f );
             c[ImGuiCol_FrameBgActive] = ImVec4( 0.12f, 0.12f, 0.12f, 1.00f );
 
-            c[ImGuiCol_TitleBg] = bg1;
-            c[ImGuiCol_TitleBgActive] = ImVec4( 0.18f, 0.18f, 0.18f, 1.00f );
-            c[ImGuiCol_TitleBgCollapsed] = bg0;
+            c[ImGuiCol_TitleBg] = Theme::Bg1;
+            c[ImGuiCol_TitleBgActive] = Theme::Bg1;
+            c[ImGuiCol_TitleBgCollapsed] = Theme::Bg0;
 
-            c[ImGuiCol_MenuBarBg] = bg1;
-            c[ImGuiCol_ScrollbarBg] = bg0;
-            c[ImGuiCol_ScrollbarGrab] = bg4;
+            c[ImGuiCol_MenuBarBg] = Theme::Bg1;
+            c[ImGuiCol_ScrollbarBg] = Theme::Bg0;
+            c[ImGuiCol_ScrollbarGrab] = Theme::Bg4;
             c[ImGuiCol_ScrollbarGrabHovered] = ImVec4( 0.52f, 0.52f, 0.52f, 1.00f );
-            c[ImGuiCol_ScrollbarGrabActive] = accent;
+            c[ImGuiCol_ScrollbarGrabActive] = Theme::Accent;
 
-            c[ImGuiCol_CheckMark] = accent;
-            c[ImGuiCol_SliderGrab] = accent;
-            c[ImGuiCol_SliderGrabActive] = accentBright;
+            c[ImGuiCol_CheckMark] = Theme::Accent;
+            c[ImGuiCol_SliderGrab] = Theme::Accent;
+            c[ImGuiCol_SliderGrabActive] = Theme::AccentBright;
 
-            c[ImGuiCol_Button] = bg3;
-            c[ImGuiCol_ButtonHovered] = accent;
-            c[ImGuiCol_ButtonActive] = accentDark;
+            c[ImGuiCol_Button] = Theme::Bg3;
+            c[ImGuiCol_ButtonHovered] = Theme::Accent;
+            c[ImGuiCol_ButtonActive] = Theme::AccentDark;
 
-            c[ImGuiCol_Header] = ImVec4( accent.x, accent.y, accent.z, 0.30f );
-            c[ImGuiCol_HeaderHovered] = ImVec4( accent.x, accent.y, accent.z, 0.50f );
-            c[ImGuiCol_HeaderActive] = ImVec4( accent.x, accent.y, accent.z, 0.80f );
+            c[ImGuiCol_Header] = ImVec4( Theme::Accent.x, Theme::Accent.y, Theme::Accent.z, 0.30f );
+            c[ImGuiCol_HeaderHovered] = ImVec4( Theme::Accent.x, Theme::Accent.y, Theme::Accent.z, 0.50f );
+            c[ImGuiCol_HeaderActive] = ImVec4( Theme::Accent.x, Theme::Accent.y, Theme::Accent.z, 0.80f );
 
-            c[ImGuiCol_Separator] = border;
-            c[ImGuiCol_SeparatorHovered] = ImVec4( accent.x, accent.y, accent.z, 0.70f );
-            c[ImGuiCol_SeparatorActive] = accent;
+            c[ImGuiCol_Separator] = Theme::Border;
+            c[ImGuiCol_SeparatorHovered] = ImVec4( Theme::Accent.x, Theme::Accent.y, Theme::Accent.z, 0.70f );
+            c[ImGuiCol_SeparatorActive] = Theme::Accent;
 
-            c[ImGuiCol_ResizeGrip] = ImVec4( accent.x, accent.y, accent.z, 0.20f );
-            c[ImGuiCol_ResizeGripHovered] = ImVec4( accent.x, accent.y, accent.z, 0.60f );
-            c[ImGuiCol_ResizeGripActive] = ImVec4( accent.x, accent.y, accent.z, 0.90f );
+            c[ImGuiCol_ResizeGrip] = ImVec4( Theme::Accent.x, Theme::Accent.y, Theme::Accent.z, 0.20f );
+            c[ImGuiCol_ResizeGripHovered] = ImVec4( Theme::Accent.x, Theme::Accent.y, Theme::Accent.z, 0.60f );
+            c[ImGuiCol_ResizeGripActive] = ImVec4( Theme::Accent.x, Theme::Accent.y, Theme::Accent.z, 0.90f );
 
             c[ImGuiCol_Tab] = ImVec4( 0.20f, 0.20f, 0.20f, 1.00f );
-            c[ImGuiCol_TabHovered] = ImVec4( accent.x, accent.y, accent.z, 0.70f );
+            c[ImGuiCol_TabHovered] = ImVec4( Theme::Accent.x, Theme::Accent.y, Theme::Accent.z, 0.70f );
             c[ImGuiCol_TabActive] = ImVec4( 0.24f, 0.50f, 0.90f, 1.00f );
-            c[ImGuiCol_TabUnfocused] = bg1;
+            c[ImGuiCol_TabUnfocused] = Theme::Bg1;
             c[ImGuiCol_TabUnfocusedActive] = ImVec4( 0.22f, 0.40f, 0.70f, 1.00f );
 
-            c[ImGuiCol_DockingPreview] = ImVec4( accent.x, accent.y, accent.z, 0.50f );
+            c[ImGuiCol_DockingPreview] = ImVec4( Theme::Accent.x, Theme::Accent.y, Theme::Accent.z, 0.50f );
             c[ImGuiCol_DockingEmptyBg] = ImVec4( 0.16f, 0.16f, 0.16f, 1.00f );
 
-            c[ImGuiCol_PlotLines] = accent;
-            c[ImGuiCol_PlotHistogram] = accent;
+            c[ImGuiCol_PlotLines] = Theme::Accent;
+            c[ImGuiCol_PlotHistogram] = Theme::Accent;
 
-            c[ImGuiCol_TextSelectedBg] = ImVec4( accent.x, accent.y, accent.z, 0.35f );
-            c[ImGuiCol_NavHighlight] = accent;
+            c[ImGuiCol_TextSelectedBg] = ImVec4( Theme::Accent.x, Theme::Accent.y, Theme::Accent.z, 0.35f );
+            c[ImGuiCol_NavHighlight] = Theme::Accent;
 
             const char* glslVersion = "#version 330";
             ImGui_ImplGlfw_InitForOpenGL( m_window.handle, true );
@@ -296,8 +286,7 @@ namespace nfx::vista
         {
             // Only apply default layout if no saved state was restored from imgui.ini
             ImGuiDockNode* node = ImGui::DockBuilderGetNode( dockspaceId );
-            bool hasRestoredLayout = node != nullptr &&
-                ( node->ChildNodes[0] != nullptr || !node->Windows.empty() );
+            bool hasRestoredLayout = node != nullptr && ( node->ChildNodes[0] != nullptr || !node->Windows.empty() );
 
             if( !hasRestoredLayout )
             {

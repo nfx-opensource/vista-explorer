@@ -6,6 +6,7 @@
  */
 
 #include "panels/NodeDetails.h"
+#include "Theme.h"
 #include <imgui.h>
 
 using namespace dnv::vista::sdk;
@@ -29,7 +30,7 @@ namespace nfx::vista
         const GmodNode& node = gmodPath.node();
 
         // Node header
-        ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 0.4f, 0.8f, 1.0f, 1.0f ) );
+        ImGui::PushStyleColor( ImGuiCol_Text, Theme::TextCode );
         ImGui::TextUnformatted( node.code().data() );
         ImGui::PopStyleColor();
 
@@ -53,15 +54,13 @@ namespace nfx::vista
 
         ImGui::Text( "Short Path:" );
         ImGui::SameLine();
-        ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 0.6f, 1.0f, 0.6f, 1.0f ) );
+        ImGui::PushStyleColor( ImGuiCol_Text, Theme::TextPath );
         ImGui::TextUnformatted( gmodPath.toString().c_str() );
         ImGui::PopStyleColor();
 
         ImGui::Text( "Full Path:" );
         ImGui::SameLine();
-        ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 0.8f, 0.8f, 0.8f, 1.0f ) );
-        ImGui::TextUnformatted( gmodPath.toFullPathString().c_str() );
-        ImGui::PopStyleColor();
+        ImGui::TextDisabled( "%s", gmodPath.toFullPathString().c_str() );
 
         ImGui::Spacing();
 

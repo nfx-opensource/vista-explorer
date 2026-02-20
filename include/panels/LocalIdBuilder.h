@@ -41,10 +41,7 @@ namespace nfx::vista
         void renderOutputSection( dnv::vista::sdk::VisVersion version );
 
         void renderMetadataInput(
-            const char* id,
-            const char* label,
-            std::string& value,
-            dnv::vista::sdk::CodebookName codebook );
+            const char* id, const char* label, std::string& value, dnv::vista::sdk::CodebookName codebook );
 
         const dnv::vista::sdk::VIS& m_vis;
         std::function<void()> m_onChanged;

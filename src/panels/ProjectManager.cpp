@@ -1,4 +1,5 @@
 #include "panels/ProjectManager.h"
+#include "Theme.h"
 
 #include <dnv/vista/sdk/ImoNumber.h>
 #include <dnv/vista/sdk/transport/ShipId.h>
@@ -259,13 +260,13 @@ namespace nfx::vista
 
         if( !m_newShipIdError.empty() )
         {
-            ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 1.0f, 0.35f, 0.35f, 1.0f ) );
+            ImGui::PushStyleColor( ImGuiCol_Text, Theme::TextError );
             ImGui::TextWrapped( "%s", m_newShipIdError.c_str() );
             ImGui::PopStyleColor();
         }
         else if( m_newShipIdValid )
         {
-            ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 0.3f, 1.0f, 0.3f, 1.0f ) );
+            ImGui::PushStyleColor( ImGuiCol_Text, Theme::TextSuccess );
             ImGui::Text( "[OK]" );
             ImGui::PopStyleColor();
         }
@@ -662,11 +663,11 @@ namespace nfx::vista
 
         if( m_statusIsError )
         {
-            ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 1.0f, 0.35f, 0.35f, 1.0f ) );
+            ImGui::PushStyleColor( ImGuiCol_Text, Theme::TextError );
         }
         else
         {
-            ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( 0.5f, 0.9f, 0.5f, 1.0f ) );
+            ImGui::PushStyleColor( ImGuiCol_Text, Theme::TextSuccess );
         }
 
         ImGui::TextUnformatted( m_statusMessage.c_str() );
