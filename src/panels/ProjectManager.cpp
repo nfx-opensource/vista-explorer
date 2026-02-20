@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <filesystem>
 
 namespace nfx::vista
 {
@@ -15,6 +16,65 @@ namespace nfx::vista
         const auto dir = ProjectSerializer::defaultDir();
         m_saveAsPath = ( dir / "project.json" ).string();
         m_openPath = m_saveAsPath;
+        m_browserCurrentDir = dir;
+        m_browserFileName = "project.json";
+    }
+
+    void ProjectManager::refreshBrowserEntries()
+    {
+        m_browserEntries.clear();
+
+        std::error_code ec;
+
+        // Add parent directory entry if not at root
+        if( m_browserCurrentDir.has_parent_path() && m_browserCurrentDir != m_browserCurrentDir.root_path() )
+        {
+            m_browserEntries.push_back( { "..", m_browserCurrentDir.parent_path(), true } );
+        }
+
+        std::vector<BrowserEntry> dirs;
+        std::vector<BrowserEntry> files;
+
+        for( const auto& entry : std::filesystem::directory_iterator( m_browserCurrentDir, ec ) )
+        {
+            if( ec )
+            {
+                break;
+            }
+
+            const bool isDir = entry.is_directory( ec );
+            if( ec )
+            {
+                ec.clear();
+                continue;
+            }
+
+            if( isDir )
+            {
+                dirs.push_back( { entry.path().filename().string(), entry.path(), true } );
+            }
+            else if( entry.path().extension() == ".json" )
+            {
+                files.push_back( { entry.path().filename().string(), entry.path(), false } );
+            }
+        }
+
+        std::sort(
+            dirs.begin(), dirs.end(), []( const BrowserEntry& a, const BrowserEntry& b ) { return a.name < b.name; } );
+        std::sort( files.begin(), files.end(), []( const BrowserEntry& a, const BrowserEntry& b ) {
+            return a.name < b.name;
+        } );
+
+        for( auto& d : dirs )
+        {
+            m_browserEntries.push_back( std::move( d ) );
+        }
+        for( auto& f : files )
+        {
+            m_browserEntries.push_back( std::move( f ) );
+        }
+
+        m_browserDirty = false;
     }
 
     const Project* ProjectManager::activeProject() const
@@ -84,6 +144,9 @@ namespace nfx::vista
         if( ImGui::Button( "Open" ) )
         {
             m_showOpenDialog = true;
+            m_browserCurrentDir = ProjectSerializer::defaultDir();
+            m_browserFileName.clear();
+            m_browserDirty = true;
             ImGui::OpenPopup( "Open Project" );
         }
 
@@ -103,6 +166,9 @@ namespace nfx::vista
                 if( m_activeProject->filePath.empty() )
                 {
                     m_showSaveAsDialog = true;
+                    m_browserCurrentDir = ProjectSerializer::defaultDir();
+                    m_browserFileName = m_activeProject->name + "-" + m_activeProject->shipId.toString() + ".json";
+                    m_browserDirty = true;
                     ImGui::OpenPopup( "Save As" );
                 }
                 else
@@ -117,6 +183,11 @@ namespace nfx::vista
         if( ImGui::Button( "Save As" ) )
         {
             m_showSaveAsDialog = true;
+            m_browserCurrentDir = ProjectSerializer::defaultDir();
+            m_browserFileName = m_activeProject.has_value()
+                                    ? ( m_activeProject->name + "-" + m_activeProject->shipId.toString() + ".json" )
+                                    : "project.json";
+            m_browserDirty = true;
             ImGui::OpenPopup( "Save As" );
         }
 
@@ -266,25 +337,82 @@ namespace nfx::vista
     {
         const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
         ImGui::SetNextWindowPos( center, ImGuiCond_Appearing, ImVec2( 0.5f, 0.5f ) );
-        ImGui::SetNextWindowSize( ImVec2( 500, 120 ), ImGuiCond_Appearing );
+        ImGui::SetNextWindowSize( ImVec2( 600, 400 ), ImGuiCond_Appearing );
 
         if( !ImGui::BeginPopupModal( "Open Project", nullptr, ImGuiWindowFlags_NoResize ) )
         {
             return;
         }
 
-        ImGui::Text( "Project file path (.json)" );
+        if( m_browserDirty )
+        {
+            refreshBrowserEntries();
+        }
+
+        // Current directory display
+        ImGui::TextDisabled( "Directory:" );
+        ImGui::SameLine();
+        ImGui::TextUnformatted( m_browserCurrentDir.string().c_str() );
+        ImGui::Separator();
+
+        // File list
+        const float listHeight = 270.0f;
+        ImGui::BeginChild( "##browserList", ImVec2( 0, listHeight ), true );
+
+        for( const auto& entry : m_browserEntries )
+        {
+            const std::string label = entry.isDirectory ? ( "[DIR]  " + entry.name ) : ( "       " + entry.name );
+
+            bool selected = !entry.isDirectory && ( m_browserFileName == entry.name );
+
+            if( ImGui::Selectable( label.c_str(), selected, ImGuiSelectableFlags_AllowDoubleClick ) )
+            {
+                if( entry.isDirectory )
+                {
+                    if( ImGui::IsMouseDoubleClicked( 0 ) )
+                    {
+                        m_browserCurrentDir = entry.fullPath;
+                        m_browserDirty = true;
+                        m_browserFileName.clear();
+                    }
+                }
+                else
+                {
+                    m_browserFileName = entry.name;
+                }
+            }
+        }
+
+        ImGui::EndChild();
+
+        // Selected file field
+        ImGui::Spacing();
+        ImGui::Text( "File:" );
+        ImGui::SameLine();
         ImGui::SetNextItemWidth( -1 );
-        ImGui::InputText( "##openPath", &m_openPath );
+        ImGui::InputText( "##openFileName", &m_browserFileName );
 
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
 
+        const bool canOpen = !m_browserFileName.empty();
+
+        if( !canOpen )
+        {
+            ImGui::BeginDisabled();
+        }
+
         if( ImGui::Button( "Open", ImVec2( 120, 0 ) ) )
         {
-            doLoad( m_openPath );
+            const auto fullPath = m_browserCurrentDir / m_browserFileName;
+            doLoad( fullPath.string() );
             ImGui::CloseCurrentPopup();
+        }
+
+        if( !canOpen )
+        {
+            ImGui::EndDisabled();
         }
 
         ImGui::SameLine();
@@ -301,25 +429,85 @@ namespace nfx::vista
     {
         const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
         ImGui::SetNextWindowPos( center, ImGuiCond_Appearing, ImVec2( 0.5f, 0.5f ) );
-        ImGui::SetNextWindowSize( ImVec2( 500, 120 ), ImGuiCond_Appearing );
+        ImGui::SetNextWindowSize( ImVec2( 600, 420 ), ImGuiCond_Appearing );
 
         if( !ImGui::BeginPopupModal( "Save As", nullptr, ImGuiWindowFlags_NoResize ) )
         {
             return;
         }
 
-        ImGui::Text( "Save path (.json)" );
+        if( m_browserDirty )
+        {
+            refreshBrowserEntries();
+        }
+
+        // Current directory display
+        ImGui::TextDisabled( "Directory:" );
+        ImGui::SameLine();
+        ImGui::TextUnformatted( m_browserCurrentDir.string().c_str() );
+        ImGui::Separator();
+
+        // File list
+        const float listHeight = 250.0f;
+        ImGui::BeginChild( "##browserListSave", ImVec2( 0, listHeight ), true );
+
+        for( const auto& entry : m_browserEntries )
+        {
+            const std::string label = entry.isDirectory ? ( "[DIR]  " + entry.name ) : ( "       " + entry.name );
+
+            bool selected = !entry.isDirectory && ( m_browserFileName == entry.name );
+
+            if( ImGui::Selectable( label.c_str(), selected, ImGuiSelectableFlags_AllowDoubleClick ) )
+            {
+                if( entry.isDirectory )
+                {
+                    if( ImGui::IsMouseDoubleClicked( 0 ) )
+                    {
+                        m_browserCurrentDir = entry.fullPath;
+                        m_browserDirty = true;
+                    }
+                }
+                else
+                {
+                    m_browserFileName = entry.name;
+                }
+            }
+        }
+
+        ImGui::EndChild();
+
+        // Editable filename
+        ImGui::Spacing();
+        ImGui::Text( "File name:" );
+        ImGui::SameLine();
         ImGui::SetNextItemWidth( -1 );
-        ImGui::InputText( "##saveAsPath", &m_saveAsPath );
+        ImGui::InputText( "##saveFileName", &m_browserFileName );
+
+        // Full path preview
+        ImGui::Spacing();
+        const auto fullPath = m_browserCurrentDir / m_browserFileName;
+        ImGui::TextDisabled( "%s", fullPath.string().c_str() );
 
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
 
+        const bool canSave = !m_browserFileName.empty();
+
+        if( !canSave )
+        {
+            ImGui::BeginDisabled();
+        }
+
         if( ImGui::Button( "Save", ImVec2( 120, 0 ) ) )
         {
-            doSave( m_saveAsPath );
+            doSave( fullPath.string() );
             ImGui::CloseCurrentPopup();
+        }
+
+        if( !canSave )
+        {
+            ImGui::EndDisabled();
         }
 
         ImGui::SameLine();

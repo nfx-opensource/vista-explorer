@@ -3,6 +3,7 @@
 #include "Project.h"
 #include "ProjectSerializer.h"
 
+#include <filesystem>
 #include <functional>
 #include <optional>
 #include <string>
@@ -42,14 +43,24 @@ namespace nfx::vista
         void doLoad( const std::string& path );
         void notifyChanged();
 
+        // File browser helpers
+        struct BrowserEntry
+        {
+            std::string name;
+            std::filesystem::path fullPath;
+            bool isDirectory = false;
+        };
+
+        void refreshBrowserEntries();
+
         std::optional<Project> m_activeProject;
         std::function<void()> m_onChanged;
 
         // New project dialog state
-        bool m_showNewDialog    = false;
+        bool m_showNewDialog = false;
         std::string m_newName;
         std::string m_newShipId;
-        bool m_newShipIdValid   = false;
+        bool m_newShipIdValid = false;
         std::string m_newShipIdError;
 
         // Open dialog state
@@ -59,6 +70,12 @@ namespace nfx::vista
         // Save As dialog state
         bool m_showSaveAsDialog = false;
         std::string m_saveAsPath;
+
+        // Shared file browser state (used by Open and Save As)
+        std::filesystem::path m_browserCurrentDir;
+        std::vector<BrowserEntry> m_browserEntries;
+        std::string m_browserFileName; // editable filename (Save As) or selected path (Open)
+        bool m_browserDirty = true;    // true = needs refreshBrowserEntries()
 
         // Status bar
         std::string m_statusMessage;
