@@ -74,6 +74,7 @@ namespace nfx::vista
         } m_rendering;
 
         std::string m_rendererName;
+        std::string m_glVersion;
         size_t m_nodeCount = 0;
         bool m_layoutNeedsSetup = true;
         bool m_layoutResetRequested = false;

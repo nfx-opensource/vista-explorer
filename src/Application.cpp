@@ -171,6 +171,11 @@ namespace nfx::vista
                 m_rendererName = reinterpret_cast<const char*>( renderer );
             }
 
+            if( const GLubyte* version = glGetString( GL_VERSION ) )
+            {
+                m_glVersion = reinterpret_cast<const char*>( version );
+            }
+
             const auto& gmod = m_vis.instance->gmod( m_vis.currentVersion );
             m_nodeCount = static_cast<size_t>( std::distance( gmod.begin(), gmod.end() ) );
         }
@@ -428,31 +433,34 @@ namespace nfx::vista
 
         if( ImGui::Begin( "##StatusBar", nullptr, windowFlags ) )
         {
-            // Rendering mode
-            ImGui::Text( "Mode: %s", m_rendering.mode.modeName() );
-
-            ImGui::SameLine();
-            ImGui::TextDisabled( "|" );
-            ImGui::SameLine();
-
-            // GPU info
-            ImGui::Text( "GPU: %s", m_rendererName.c_str() );
-
-            ImGui::SameLine();
-            ImGui::TextDisabled( "|" );
-            ImGui::SameLine();
-
-            // VIS version
+            // Left: VIS data
             ImGui::Text( "VIS: %s", VisVersions::toString( m_vis.currentVersion ).data() );
 
             ImGui::SameLine();
             ImGui::TextDisabled( "|" );
             ImGui::SameLine();
 
-            // Nodes count
             ImGui::Text( "Nodes: %zu", m_nodeCount );
 
-            // FPS (in polling and adaptive modes)
+            ImGui::SameLine();
+            ImGui::TextDisabled( "|" );
+            ImGui::SameLine();
+
+            // Rendering info
+            ImGui::Text( "Mode: %s", m_rendering.mode.modeName() );
+
+            ImGui::SameLine();
+            ImGui::TextDisabled( "|" );
+            ImGui::SameLine();
+
+            ImGui::Text( "GPU: %s", m_rendererName.c_str() );
+
+            ImGui::SameLine();
+            ImGui::TextDisabled( "|" );
+            ImGui::SameLine();
+
+            ImGui::Text( "OpenGL %s", m_glVersion.c_str() );
+
             if( m_rendering.mode.mode() != RenderingMode::Mode::EventDriven )
             {
                 ImGui::SameLine();
