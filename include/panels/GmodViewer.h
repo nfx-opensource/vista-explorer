@@ -5,6 +5,7 @@
 
 #include <functional>
 #include <optional>
+#include <string>
 #include <utility>
 
 namespace dnv::vista::sdk
@@ -59,7 +60,7 @@ namespace nfx::vista
 
         struct SearchState
         {
-            char buffer[256] = {};
+            std::string buffer;
             bool boxHasFocus = false;
             ImVec2 boxPos;
             ImVec2 boxSize;

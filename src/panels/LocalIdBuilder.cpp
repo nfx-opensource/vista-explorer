@@ -1,5 +1,7 @@
 #include "panels/LocalIdBuilder.h"
 
+#include <misc/cpp/imgui_stdlib.h>
+
 #include <algorithm>
 #include <cctype>
 
@@ -76,8 +78,7 @@ namespace nfx::vista
         ImGui::InputTextWithHint(
             "##primaryPath",
             "Enter Gmod path (e.g., 411.1-1P or 612.21/C701.13)",
-            m_state.primaryPath,
-            sizeof( m_state.primaryPath ) );
+            &m_state.primaryPath );
 
         if( ImGui::IsItemDeactivatedAfterEdit() )
         {
@@ -93,10 +94,7 @@ namespace nfx::vista
         {
             if( m_currentGmodPath.has_value() )
             {
-                std::string shortPath = m_currentGmodPath->toString();
-
-                strncpy( m_state.primaryPath, shortPath.c_str(), sizeof( m_state.primaryPath ) - 1 );
-                m_state.primaryPath[sizeof( m_state.primaryPath ) - 1] = '\0';
+                m_state.primaryPath = m_currentGmodPath->toString();
                 m_state.primaryPathDirty = true;
 
                 if( m_onChanged )
@@ -112,7 +110,7 @@ namespace nfx::vista
             const auto& gmod = m_vis.gmod( version );
             const auto& locations = m_vis.locations( version );
             ParsingErrors tempErrors;
-            if( m_state.primaryPath[0] != '\0' )
+            if( !m_state.primaryPath.empty() )
             {
                 m_state.primaryPathOpt = GmodPath::fromShortPath( m_state.primaryPath, gmod, locations, tempErrors );
             }
@@ -124,7 +122,7 @@ namespace nfx::vista
         }
 
         // Validation display
-        if( m_state.primaryPath[0] != '\0' )
+        if( !m_state.primaryPath.empty() )
         {
             if( m_state.primaryPathOpt.has_value() )
             {
@@ -155,7 +153,7 @@ namespace nfx::vista
         }
 
         ImGui::InputTextWithHint(
-            "##secondaryPath", "Enter secondary Gmod path", m_state.secondaryPath, sizeof( m_state.secondaryPath ) );
+            "##secondaryPath", "Enter secondary Gmod path", &m_state.secondaryPath );
 
         if( ImGui::IsItemDeactivatedAfterEdit() )
         {
@@ -171,9 +169,7 @@ namespace nfx::vista
         {
             if( m_currentGmodPath.has_value() )
             {
-                std::string shortPath = m_currentGmodPath->toString();
-                strncpy( m_state.secondaryPath, shortPath.c_str(), sizeof( m_state.secondaryPath ) - 1 );
-                m_state.secondaryPath[sizeof( m_state.secondaryPath ) - 1] = '\0';
+                m_state.secondaryPath = m_currentGmodPath->toString();
                 m_state.secondaryPathDirty = true;
                 if( m_onChanged )
                 {
@@ -188,7 +184,7 @@ namespace nfx::vista
             const auto& gmod = m_vis.gmod( version );
             const auto& locations = m_vis.locations( version );
             ParsingErrors tempErrors;
-            if( m_state.secondaryPath[0] != '\0' )
+            if( !m_state.secondaryPath.empty() )
             {
                 m_state.secondaryPathOpt =
                     GmodPath::fromShortPath( m_state.secondaryPath, gmod, locations, tempErrors );
@@ -201,7 +197,7 @@ namespace nfx::vista
         }
 
         // Validation display
-        if( m_state.secondaryPath[0] != '\0' )
+        if( !m_state.secondaryPath.empty() )
         {
             if( m_state.secondaryPathOpt.has_value() )
             {
@@ -352,7 +348,7 @@ namespace nfx::vista
         ImGui::Spacing();
 
         // Apply location to the correct individualizable node in the path using the SDK
-        auto applyLocation = [&]( char* pathBuf, size_t bufSize, const std::optional<GmodPath>& cachedPath ) {
+        auto applyLocation = [&]( std::string& pathBuf, const std::optional<GmodPath>& cachedPath ) {
             if( !cachedPath.has_value() )
             {
                 // Can't parse — raw text fallback: put location on first segment
@@ -365,9 +361,7 @@ namespace nfx::vista
                 {
                     firstSeg = firstSeg.substr( 0, dashPos );
                 }
-                std::string newPath = firstSeg + "-" + builtLocation + rest;
-                strncpy( pathBuf, newPath.c_str(), bufSize - 1 );
-                pathBuf[bufSize - 1] = '\0';
+                pathBuf = firstSeg + "-" + builtLocation + rest;
                 if( m_onChanged )
                 {
                     m_onChanged();
@@ -433,8 +427,7 @@ namespace nfx::vista
                 }
             }
 
-            strncpy( pathBuf, newPath.c_str(), bufSize - 1 );
-            pathBuf[bufSize - 1] = '\0';
+            pathBuf = newPath;
             if( m_onChanged )
             {
                 m_onChanged();
@@ -502,19 +495,19 @@ namespace nfx::vista
         {
             if( ImGui::Button( "Apply to Primary" ) )
             {
-                if( m_state.primaryPath[0] != '\0' )
+                if( !m_state.primaryPath.empty() )
                 {
-                    applyLocation( m_state.primaryPath, sizeof( m_state.primaryPath ), m_state.primaryPathOpt );
+                    applyLocation( m_state.primaryPath, m_state.primaryPathOpt );
                     m_state.primaryPathDirty = true;
                 }
             }
 
-            if( m_state.hasSecondaryItem && m_state.secondaryPath[0] != '\0' )
+            if( m_state.hasSecondaryItem && !m_state.secondaryPath.empty() )
             {
                 ImGui::SameLine();
                 if( ImGui::Button( "Apply to Secondary" ) )
                 {
-                    applyLocation( m_state.secondaryPath, sizeof( m_state.secondaryPath ), m_state.secondaryPathOpt );
+                    applyLocation( m_state.secondaryPath, m_state.secondaryPathOpt );
                     m_state.secondaryPathDirty = true;
                 }
             }
@@ -571,35 +564,34 @@ namespace nfx::vista
 
         // Column 1
         renderMetadataInput(
-            "##quantity", "Quantity", m_state.quantity, sizeof( m_state.quantity ), CodebookName::Quantity );
+            "##quantity", "Quantity", m_state.quantity, CodebookName::Quantity );
         ImGui::Spacing();
         renderMetadataInput(
-            "##content", "Content", m_state.content, sizeof( m_state.content ), CodebookName::Content );
+            "##content", "Content", m_state.content, CodebookName::Content );
         ImGui::Spacing();
         renderMetadataInput(
-            "##position", "Position", m_state.position, sizeof( m_state.position ), CodebookName::Position );
+            "##position", "Position", m_state.position, CodebookName::Position );
         ImGui::Spacing();
         renderMetadataInput(
             "##calculation",
             "Calculation",
             m_state.calculation,
-            sizeof( m_state.calculation ),
             CodebookName::Calculation );
 
         ImGui::NextColumn();
 
         // Column 2
-        renderMetadataInput( "##state", "State", m_state.state, sizeof( m_state.state ), CodebookName::State );
+        renderMetadataInput( "##state", "State", m_state.state, CodebookName::State );
         ImGui::Spacing();
         renderMetadataInput(
-            "##command", "Command", m_state.command, sizeof( m_state.command ), CodebookName::Command );
+            "##command", "Command", m_state.command, CodebookName::Command );
         ImGui::Spacing();
-        renderMetadataInput( "##type", "Type", m_state.type, sizeof( m_state.type ), CodebookName::Type );
+        renderMetadataInput( "##type", "Type", m_state.type, CodebookName::Type );
         ImGui::Spacing();
 
         ImGui::TextDisabled( "Detail" );
         ImGui::SetNextItemWidth( ImGui::GetContentRegionAvail().x );
-        ImGui::InputTextWithHint( "##detail", "Free text...", m_state.detail, sizeof( m_state.detail ) );
+        ImGui::InputTextWithHint( "##detail", "Free text...", &m_state.detail );
 
         ImGui::Columns( 1 );
     }
@@ -625,7 +617,7 @@ namespace nfx::vista
         // Helper lambda to add metadata tag with correct separator (- for standard, ~ for custom)
         // Detail always uses '-' regardless of value
         auto addMetadataTag =
-            [&codebooks]( std::string& str, const char* prefix, const char* value, CodebookName codebookName ) {
+            [&codebooks]( std::string& str, const char* prefix, const std::string& value, CodebookName codebookName ) {
                 bool isCustom = false;
 
                 if( codebookName != CodebookName::Detail )
@@ -694,49 +686,49 @@ namespace nfx::vista
         bool hasMetadata = false;
         std::string metadataStr;
 
-        if( m_state.quantity[0] != '\0' )
+        if( !m_state.quantity.empty() )
         {
             addMetadataTag( metadataStr, "qty", m_state.quantity, CodebookName::Quantity );
             hasMetadata = true;
         }
 
-        if( m_state.content[0] != '\0' )
+        if( !m_state.content.empty() )
         {
             addMetadataTag( metadataStr, "cnt", m_state.content, CodebookName::Content );
             hasMetadata = true;
         }
 
-        if( m_state.calculation[0] != '\0' )
+        if( !m_state.calculation.empty() )
         {
             addMetadataTag( metadataStr, "calc", m_state.calculation, CodebookName::Calculation );
             hasMetadata = true;
         }
 
-        if( m_state.state[0] != '\0' )
+        if( !m_state.state.empty() )
         {
             addMetadataTag( metadataStr, "state", m_state.state, CodebookName::State );
             hasMetadata = true;
         }
 
-        if( m_state.command[0] != '\0' )
+        if( !m_state.command.empty() )
         {
             addMetadataTag( metadataStr, "cmd", m_state.command, CodebookName::Command );
             hasMetadata = true;
         }
 
-        if( m_state.type[0] != '\0' )
+        if( !m_state.type.empty() )
         {
             addMetadataTag( metadataStr, "type", m_state.type, CodebookName::Type );
             hasMetadata = true;
         }
 
-        if( m_state.position[0] != '\0' )
+        if( !m_state.position.empty() )
         {
             addMetadataTag( metadataStr, "pos", m_state.position, CodebookName::Position );
             hasMetadata = true;
         }
 
-        if( m_state.detail[0] != '\0' )
+        if( !m_state.detail.empty() )
         {
             addMetadataTag( metadataStr, "detail", m_state.detail, CodebookName::Detail );
             hasMetadata = true;
@@ -766,12 +758,8 @@ namespace nfx::vista
         }
 
         ImGui::Spacing(); // LocalId in a read-only input field (always present)
-        char localIdBuffer[1024];
-        strncpy( localIdBuffer, m_state.generatedLocalId.c_str(), sizeof( localIdBuffer ) - 1 );
-        localIdBuffer[sizeof( localIdBuffer ) - 1] = '\0';
-
         ImGui::PushItemWidth( -220 );
-        ImGui::InputText( "##localIdOutput", localIdBuffer, sizeof( localIdBuffer ), ImGuiInputTextFlags_ReadOnly );
+        ImGui::InputText( "##localIdOutput", &m_state.generatedLocalId, ImGuiInputTextFlags_ReadOnly );
         ImGui::PopItemWidth();
         ImGui::SameLine();
         if( ImGui::Button( "Copy", ImVec2( 100, 0 ) ) )
@@ -816,14 +804,14 @@ namespace nfx::vista
     }
 
     void LocalIdBuilder::renderMetadataInput(
-        const char* id, const char* label, char* buffer, size_t bufferSize, CodebookName codebook )
+        const char* id, const char* label, std::string& value, CodebookName codebook )
     {
         ImGui::TextDisabled( "%s", label );
 
         // Input field for direct editing
         const float arrowButtonWidth = ImGui::GetFrameHeight();
         ImGui::PushItemWidth( ImGui::GetContentRegionAvail().x - arrowButtonWidth - ImGui::GetStyle().ItemSpacing.x );
-        ImGui::InputTextWithHint( id, "Type custom or select...", buffer, bufferSize );
+        ImGui::InputTextWithHint( id, "Type custom or select...", &value );
         ImGui::PopItemWidth();
 
         // Button to open combo with standard values
@@ -852,16 +840,10 @@ namespace nfx::vista
         {
             // Get or create filter buffer for this combo
             auto& filterStr = m_comboFilters[codebook];
-            char filterBuf[256];
-            strncpy( filterBuf, filterStr.c_str(), sizeof( filterBuf ) - 1 );
-            filterBuf[sizeof( filterBuf ) - 1] = '\0';
 
             // Filter input at top
             ImGui::SetNextItemWidth( 300 );
-            if( ImGui::InputTextWithHint( "##filter", "Filter...", filterBuf, sizeof( filterBuf ) ) )
-            {
-                filterStr = filterBuf;
-            }
+            ImGui::InputTextWithHint( "##filter", "Filter...", &filterStr );
 
             ImGui::Separator();
 
@@ -869,15 +851,15 @@ namespace nfx::vista
             ImGui::BeginChild( "##items", ImVec2( 300, 300 ), true );
 
             // Filter and display items
-            std::string lowerFilter( filterBuf );
+            std::string lowerFilter( filterStr );
             std::transform( lowerFilter.begin(), lowerFilter.end(), lowerFilter.begin(), ::tolower );
 
-            for( const auto& value : cachedCodebook )
+            for( const auto& item : cachedCodebook )
             {
                 // Filter
-                if( lowerFilter[0] != '\0' )
+                if( !lowerFilter.empty() )
                 {
-                    std::string lowerValue = value;
+                    std::string lowerValue = item;
                     std::transform( lowerValue.begin(), lowerValue.end(), lowerValue.begin(), ::tolower );
                     if( lowerValue.find( lowerFilter ) == std::string::npos )
                     {
@@ -885,12 +867,11 @@ namespace nfx::vista
                     }
                 }
 
-                bool isSelected = ( strcmp( buffer, value.c_str() ) == 0 );
-                if( ImGui::Selectable( value.c_str(), isSelected ) )
+                bool isSelected = ( value == item );
+                if( ImGui::Selectable( item.c_str(), isSelected ) )
                 {
-                    strncpy( buffer, value.c_str(), bufferSize - 1 );
-                    buffer[bufferSize - 1] = '\0';
-                    m_comboFilters[codebook].clear(); // Clear filter on selection
+                    value = item;
+                    m_comboFilters[codebook].clear();
                     ImGui::CloseCurrentPopup();
                 }
                 if( isSelected )

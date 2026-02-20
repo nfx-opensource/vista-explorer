@@ -43,8 +43,7 @@ namespace nfx::vista
         void renderMetadataInput(
             const char* id,
             const char* label,
-            char* buffer,
-            size_t bufferSize,
+            std::string& value,
             dnv::vista::sdk::CodebookName codebook );
 
         const dnv::vista::sdk::VIS& m_vis;
@@ -57,8 +56,8 @@ namespace nfx::vista
         // Builder state
         struct
         {
-            char primaryPath[512] = {};
-            char secondaryPath[512] = {};
+            std::string primaryPath;
+            std::string secondaryPath;
             bool hasSecondaryItem = false;
             bool verboseMode = false;
 
@@ -69,14 +68,14 @@ namespace nfx::vista
             bool secondaryPathDirty = true;
 
             // Metadata tags
-            char quantity[128] = {};
-            char content[128] = {};
-            char position[128] = {};
-            char calculation[128] = {};
-            char state[128] = {};
-            char command[128] = {};
-            char type[128] = {};
-            char detail[128] = {};
+            std::string quantity;
+            std::string content;
+            std::string position;
+            std::string calculation;
+            std::string state;
+            std::string command;
+            std::string type;
+            std::string detail;
 
             // Output
             std::string generatedLocalId;

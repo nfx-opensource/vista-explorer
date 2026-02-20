@@ -14,6 +14,8 @@
 
 #include "panels/GmodViewer.h"
 
+#include <misc/cpp/imgui_stdlib.h>
+
 #include <algorithm>
 
 using namespace dnv::vista::sdk;
@@ -231,16 +233,16 @@ namespace nfx::vista
         ImGui::End();
 
         const auto& gmodForSearch = m_vis.gmod( version );
-        bool showOverlay = m_search.buffer[0] != '\0' && ( m_search.boxHasFocus || m_search.overlayHovered );
+        bool showOverlay = !m_search.buffer.empty() && ( m_search.boxHasFocus || m_search.overlayHovered );
 
         if( showOverlay )
         {
             renderSearchResultsOverlay( gmodForSearch, version );
         }
-        else if( m_search.buffer[0] != '\0' )
+        else if( !m_search.buffer.empty() )
         {
             // Search buffer not empty but overlay not shown = clicked outside, clear search
-            m_search.buffer[0] = '\0';
+            m_search.buffer.clear();
             if( m_onChanged )
             {
                 m_onChanged();
@@ -254,14 +256,13 @@ namespace nfx::vista
         ImGui::Spacing();
         ImGui::SetNextItemWidth( -1.0f ); // Full width
 
-        char previousBuffer[256];
-        strncpy( previousBuffer, m_search.buffer, sizeof( previousBuffer ) );
+        std::string previousBuffer = m_search.buffer;
 
         ImGui::InputTextWithHint(
-            "##search", "Search nodes (code or name)...", m_search.buffer, sizeof( m_search.buffer ) );
+            "##search", "Search nodes (code or name)...", &m_search.buffer );
 
         // Increment search ID when buffer changes (new search) to force window reordering
-        if( strcmp( previousBuffer, m_search.buffer ) != 0 )
+        if( previousBuffer != m_search.buffer )
         {
             m_search.id++;
             if( m_onChanged )
