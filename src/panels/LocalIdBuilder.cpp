@@ -289,9 +289,13 @@ namespace nfx::vista
                             ImGui::PushStyleColor( ImGuiCol_Button, ImGui::GetStyleColorVec4( ImGuiCol_ButtonActive ) );
                         }
                         char btnLabel[64];
-                        snprintf( btnLabel, sizeof( btnLabel ), "%c  %.*s##%s",
+                        snprintf(
+                            btnLabel,
+                            sizeof( btnLabel ),
+                            "%c  %.*s##%s",
                             relLoc.code(),
-                            static_cast<int>( relLoc.name().size() ), relLoc.name().data(),
+                            static_cast<int>( relLoc.name().size() ),
+                            relLoc.name().data(),
                             btnSuffix );
                         if( ImGui::Button( btnLabel ) )
                         {
@@ -497,23 +501,25 @@ namespace nfx::vista
         if( hasAnyComponent && !builtLocation.empty() )
         {
             if( ImGui::Button( "Apply to Primary" ) )
+            {
+                if( m_state.primaryPath[0] != '\0' )
                 {
-                    if( m_state.primaryPath[0] != '\0' )
-                    {
-                        applyLocation( m_state.primaryPath, sizeof( m_state.primaryPath ), m_state.primaryPathOpt );
-                        m_state.primaryPathDirty = true;
-                    }
+                    applyLocation( m_state.primaryPath, sizeof( m_state.primaryPath ), m_state.primaryPathOpt );
+                    m_state.primaryPathDirty = true;
                 }
+            }
 
             if( m_state.hasSecondaryItem && m_state.secondaryPath[0] != '\0' )
+            {
+                ImGui::SameLine();
+                if( ImGui::Button( "Apply to Secondary" ) )
                 {
-                    ImGui::SameLine();
-                    if( ImGui::Button( "Apply to Secondary" ) )
-                    {
-                        applyLocation( m_state.secondaryPath, sizeof( m_state.secondaryPath ), m_state.secondaryPathOpt );
-                        m_state.secondaryPathDirty = true;
-                    }
-                }            ImGui::SameLine();
+                    applyLocation( m_state.secondaryPath, sizeof( m_state.secondaryPath ), m_state.secondaryPathOpt );
+                    m_state.secondaryPathDirty = true;
+                }
+            }
+
+            ImGui::SameLine();
         }
 
         // --- Reset (always visible) ---

@@ -14,6 +14,8 @@
 
 #include "panels/GmodViewer.h"
 
+#include <algorithm>
+
 using namespace dnv::vista::sdk;
 
 namespace nfx::vista
@@ -43,7 +45,7 @@ namespace nfx::vista
                 part += "-";
                 part += current->location()->value();
             }
-            pathParts.insert( pathParts.begin(), part );
+            pathParts.push_back( std::move( part ) );
 
             if( !current->parents().isEmpty() )
             {
@@ -54,6 +56,8 @@ namespace nfx::vista
                 break;
             }
         }
+
+        std::reverse( pathParts.begin(), pathParts.end() );
 
         // Join with '/'
         for( size_t i = 0; i < pathParts.size(); ++i )
