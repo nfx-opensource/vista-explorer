@@ -44,7 +44,7 @@ namespace nfx::vista
             glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 5 );
             glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
 
-            m_window.handle = glfwCreateWindow( 1920, 1080, "Vista explorer", nullptr, nullptr );
+            m_window.handle = glfwCreateWindow( 1280, 720, "Vista explorer", nullptr, nullptr );
             if( !m_window.handle )
             {
                 std::cerr << "Failed to create GLFW window\n";
