@@ -46,6 +46,11 @@ list(APPEND IMGUI_SOURCES
     ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
 )
 
+# ImGui stdlib helpers (InputText for std::string)
+list(APPEND IMGUI_SOURCES
+    ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp
+)
+
 #----------------------------------------------
 # Dependencies - GLFW
 #----------------------------------------------
@@ -116,6 +121,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${imgui_SOURCE_DIR}
     ${imgui_SOURCE_DIR}/backends
+    ${imgui_SOURCE_DIR}/misc/cpp
 )
 
 #----------------------------------------------
