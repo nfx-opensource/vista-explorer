@@ -263,7 +263,6 @@ namespace nfx::vista
         // Increment search ID when buffer changes (new search) to force window reordering
         if( previousBuffer != m_search.buffer )
         {
-            m_search.id++;
             if( m_onChanged )
             {
                 m_onChanged();
@@ -894,24 +893,21 @@ namespace nfx::vista
         // Position the overlay window below the search box
         ImVec2 overlayPos = ImVec2( m_search.boxPos.x, m_search.boxPos.y + m_search.boxSize.y );
 
-        // Calculate max height for ~10 items
-        float itemHeight = ImGui::GetTextLineHeightWithSpacing() + ImGui::GetStyle().ItemSpacing.y;
-        float maxHeight = itemHeight * 10.5f; // .5f for partial item visibility
+        // Max height = 10 items; auto-resize handles smaller counts
+        float itemHeight = ImGui::GetTextLineHeightWithSpacing();
+        float maxHeight = itemHeight * 10.0f + ImGui::GetStyle().WindowPadding.y * 2.0f;
 
         ImGui::SetNextWindowPos( overlayPos, ImGuiCond_Always );
         ImGui::SetNextWindowSizeConstraints( ImVec2( m_search.boxSize.x, 0 ), ImVec2( m_search.boxSize.x, maxHeight ) );
 
         ImGui::PushStyleColor( ImGuiCol_WindowBg, ImVec4( 0.15f, 0.15f, 0.15f, 0.90f ) );
 
-        // Use search ID in window name to force re-ordering when search changes
-        char windowName[64];
-        snprintf( windowName, sizeof( windowName ), "SearchOverlay##%d", m_search.id );
-
         ImGui::Begin(
-            windowName,
+            "SearchOverlay",
             nullptr,
             ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoFocusOnAppearing );
+                ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoFocusOnAppearing |
+                ImGuiWindowFlags_AlwaysAutoResize );
 
         renderSearchResults( gmod, version );
 

@@ -65,7 +65,6 @@ namespace nfx::vista
             ImVec2 boxPos;
             ImVec2 boxSize;
             bool overlayHovered = false;
-            int id = 0; // Incremented when search changes to force window reordering
         };
         SearchState m_search;
 
