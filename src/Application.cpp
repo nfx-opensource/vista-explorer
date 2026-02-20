@@ -8,6 +8,7 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+#include <imgui_internal.h>
 
 #include <iostream>
 #include <iterator>
@@ -237,6 +238,29 @@ namespace nfx::vista
         ImGui::NewFrame();
     }
 
+    void Application::setupDefaultLayout( unsigned int dockspaceId )
+    {
+        ImGui::DockBuilderRemoveNode( dockspaceId );
+        ImGui::DockBuilderAddNode( dockspaceId, ImGuiDockNodeFlags_DockSpace );
+        ImGui::DockBuilderSetNodeSize( dockspaceId, ImGui::GetMainViewport()->WorkSize );
+
+        // Split vertically 50/50: left | right
+        ImGuiID rightId;
+        ImGuiID leftId = ImGui::DockBuilderSplitNode( dockspaceId, ImGuiDir_Left, 0.5f, nullptr, &rightId );
+
+        // Split right half horizontally 50/50: top (GmodViewer) | bottom (NodeDetails)
+        ImGuiID rightBottomId;
+        ImGuiID rightTopId = ImGui::DockBuilderSplitNode( rightId, ImGuiDir_Up, 0.5f, nullptr, &rightBottomId );
+
+        // Dock panels
+        ImGui::DockBuilderDockWindow( "LocalId Builder", leftId );
+        ImGui::DockBuilderDockWindow( "Project Manager", leftId );
+        ImGui::DockBuilderDockWindow( "Gmod Viewer", rightTopId );
+        ImGui::DockBuilderDockWindow( "Node Details", rightBottomId );
+
+        ImGui::DockBuilderFinish( dockspaceId );
+    }
+
     void Application::renderFrame()
     {
         ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -262,6 +286,26 @@ namespace nfx::vista
         // Create dockspace
         ImGuiID dockspaceId = ImGui::GetID( "MainDockSpace" );
         ImGui::DockSpace( dockspaceId, ImVec2( 0.0f, 0.0f ), ImGuiDockNodeFlags_PassthruCentralNode );
+
+        if( m_layoutResetRequested )
+        {
+            setupDefaultLayout( dockspaceId );
+            m_layoutResetRequested = false;
+        }
+        else if( m_layoutNeedsSetup )
+        {
+            // Only apply default layout if no saved state was restored from imgui.ini
+            ImGuiDockNode* node = ImGui::DockBuilderGetNode( dockspaceId );
+            bool hasRestoredLayout = node != nullptr &&
+                ( node->ChildNodes[0] != nullptr || !node->Windows.empty() );
+
+            if( !hasRestoredLayout )
+            {
+                setupDefaultLayout( dockspaceId );
+            }
+
+            m_layoutNeedsSetup = false;
+        }
 
         // Menu bar
         if( ImGui::BeginMenuBar() )
@@ -309,6 +353,13 @@ namespace nfx::vista
                 }
                 if( ImGui::MenuItem( "Project Manager", nullptr, &m_ui.showProjectManager ) )
                 {
+                    m_rendering.mode.notifyChange();
+                }
+
+                ImGui::Separator();
+                if( ImGui::MenuItem( "Reset Layout" ) )
+                {
+                    m_layoutResetRequested = true;
                     m_rendering.mode.notifyChange();
                 }
 

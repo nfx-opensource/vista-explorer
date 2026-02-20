@@ -35,6 +35,7 @@ namespace nfx::vista
         void endFrame();
 
         void renderStatusBar();
+        void setupDefaultLayout( unsigned int dockspaceId );
 
         struct
         {
@@ -74,6 +75,8 @@ namespace nfx::vista
 
         std::string m_rendererName;
         size_t m_nodeCount = 0;
+        bool m_layoutNeedsSetup = true;
+        bool m_layoutResetRequested = false;
 
         std::optional<dnv::vista::sdk::GmodPath> m_currentGmodPath;
     };
