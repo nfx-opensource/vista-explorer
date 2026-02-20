@@ -161,6 +161,16 @@ namespace nfx::vista
             m_panels.localIdBuilder = std::make_unique<LocalIdBuilder>( *m_vis.instance );
             m_panels.localIdBuilder->setChangeNotifier( [this]() { m_rendering.mode.notifyChange(); } );
 
+            m_panels.nodeDetails->setUsePrimaryCallback( [this]( const dnv::vista::sdk::GmodPath& path ) {
+                m_panels.localIdBuilder->setPrimaryPath( path );
+                m_rendering.mode.notifyChange();
+            } );
+
+            m_panels.nodeDetails->setUseSecondaryCallback( [this]( const dnv::vista::sdk::GmodPath& path ) {
+                m_panels.localIdBuilder->setSecondaryPath( path );
+                m_rendering.mode.notifyChange();
+            } );
+
             m_panels.projectManager = std::make_unique<ProjectManager>();
             m_panels.projectManager->setChangeNotifier( [this]() { m_rendering.mode.notifyChange(); } );
         }

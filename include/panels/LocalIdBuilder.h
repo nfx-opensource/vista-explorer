@@ -33,6 +33,29 @@ namespace nfx::vista
             m_currentGmodPath = path;
         }
 
+        void setPrimaryPath( const dnv::vista::sdk::GmodPath& path )
+        {
+            m_state.primaryPath = path.toString();
+            m_state.primaryPathOpt = path;
+            m_state.primaryPathDirty = false;
+            if( m_onChanged )
+            {
+                m_onChanged();
+            }
+        }
+
+        void setSecondaryPath( const dnv::vista::sdk::GmodPath& path )
+        {
+            m_state.hasSecondaryItem = true;
+            m_state.secondaryPath = path.toString();
+            m_state.secondaryPathOpt = path;
+            m_state.secondaryPathDirty = false;
+            if( m_onChanged )
+            {
+                m_onChanged();
+            }
+        }
+
     private:
         void renderPrimaryItemSection( dnv::vista::sdk::VisVersion version );
         void renderSecondaryItemSection( dnv::vista::sdk::VisVersion version );

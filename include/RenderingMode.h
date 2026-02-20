@@ -22,7 +22,7 @@ namespace nfx
             Polling      ///< Polling: continuous polling (glfwPollEvents)
         };
 
-        explicit RenderingMode( Mode mode = Mode::Adaptive )
+        explicit RenderingMode( Mode mode = Mode::EventDriven )
             : m_mode{ mode }
         {
         }

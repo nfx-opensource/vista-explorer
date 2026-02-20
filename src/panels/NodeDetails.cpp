@@ -64,6 +64,25 @@ namespace nfx::vista
 
         ImGui::Spacing();
 
+        if( m_onUsePrimary )
+        {
+            if( ImGui::Button( "Use as Primary" ) )
+            {
+                m_onUsePrimary( gmodPath );
+            }
+            ImGui::SameLine();
+        }
+
+        if( m_onUseSecondary )
+        {
+            if( ImGui::Button( "Use as Secondary" ) )
+            {
+                m_onUseSecondary( gmodPath );
+            }
+        }
+
+        ImGui::Spacing();
+
         // Basic information
         ImGui::SeparatorText( "Basic Information" );
 
