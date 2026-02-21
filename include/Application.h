@@ -75,11 +75,18 @@ namespace nfx::vista
             double fps = 0.0;
         } m_rendering;
 
-        std::string m_rendererName;
-        std::string m_glVersion;
-        size_t m_nodeCount = 0;
-        bool m_layoutNeedsSetup = true;
-        bool m_layoutResetRequested = false;
+        struct
+        {
+            std::string rendererName;
+            std::string glVersion;
+            size_t nodeCount = 0;
+        } m_status;
+
+        struct
+        {
+            bool needsSetup = true;
+            bool resetRequested = false;
+        } m_layout;
 
         std::optional<dnv::vista::sdk::GmodPath> m_currentGmodPath;
     };

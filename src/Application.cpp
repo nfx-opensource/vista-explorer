@@ -178,16 +178,16 @@ namespace nfx::vista
         {
             if( const GLubyte* renderer = glGetString( GL_RENDERER ) )
             {
-                m_rendererName = reinterpret_cast<const char*>( renderer );
+                m_status.rendererName = reinterpret_cast<const char*>( renderer );
             }
 
             if( const GLubyte* version = glGetString( GL_VERSION ) )
             {
-                m_glVersion = reinterpret_cast<const char*>( version );
+                m_status.glVersion = reinterpret_cast<const char*>( version );
             }
 
             const auto& gmod = m_vis.instance->gmod( m_vis.currentVersion );
-            m_nodeCount = static_cast<size_t>( std::distance( gmod.begin(), gmod.end() ) );
+            m_status.nodeCount = static_cast<size_t>( std::distance( gmod.begin(), gmod.end() ) );
         }
 
         return true;
@@ -255,15 +255,15 @@ namespace nfx::vista
         ImGuiID dockspaceId = ImGui::GetID( "MainDockSpace" );
         ImGui::DockSpace( dockspaceId, ImVec2( 0.0f, 0.0f ), ImGuiDockNodeFlags_PassthruCentralNode );
 
-        if( m_layoutResetRequested )
+        if( m_layout.resetRequested )
         {
             setupDefaultLayout( dockspaceId );
-            m_layoutResetRequested = false;
+            m_layout.resetRequested = false;
         }
-        else if( m_layoutNeedsSetup )
+        else if( m_layout.needsSetup )
         {
             setupDefaultLayout( dockspaceId );
-            m_layoutNeedsSetup = false;
+            m_layout.needsSetup = false;
         }
 
         // Menu bar
@@ -289,7 +289,7 @@ namespace nfx::vista
                         m_vis.versionIndex = i;
                         m_vis.currentVersion = versions[i];
                         const auto& gmod = m_vis.instance->gmod( m_vis.currentVersion );
-                        m_nodeCount = static_cast<size_t>( std::distance( gmod.begin(), gmod.end() ) );
+                        m_status.nodeCount = static_cast<size_t>( std::distance( gmod.begin(), gmod.end() ) );
                         m_rendering.mode.notifyChange();
                     }
                 }
@@ -318,7 +318,7 @@ namespace nfx::vista
                 ImGui::Separator();
                 if( ImGui::MenuItem( "Reset Layout" ) )
                 {
-                    m_layoutResetRequested = true;
+                    m_layout.resetRequested = true;
                     m_rendering.mode.notifyChange();
                 }
 
@@ -420,7 +420,7 @@ namespace nfx::vista
             ImGui::TextDisabled( "|" );
             ImGui::SameLine();
 
-            ImGui::Text( "Nodes: %zu", m_nodeCount );
+            ImGui::Text( "Nodes: %zu", m_status.nodeCount );
 
             ImGui::SameLine();
             ImGui::TextDisabled( "|" );
@@ -433,13 +433,13 @@ namespace nfx::vista
             ImGui::TextDisabled( "|" );
             ImGui::SameLine();
 
-            ImGui::Text( "GPU: %s", m_rendererName.c_str() );
+            ImGui::Text( "GPU: %s", m_status.rendererName.c_str() );
 
             ImGui::SameLine();
             ImGui::TextDisabled( "|" );
             ImGui::SameLine();
 
-            ImGui::Text( "OpenGL %s", m_glVersion.c_str() );
+            ImGui::Text( "OpenGL %s", m_status.glVersion.c_str() );
 
             if( m_rendering.mode.mode() != RenderingMode::Mode::EventDriven )
             {
