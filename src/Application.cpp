@@ -201,23 +201,20 @@ namespace nfx::vista
         ImGui::Begin( "DockSpace", nullptr, windowFlags );
         ImGui::PopStyleVar( 3 );
 
-        // Create dockspace
         ImGuiID dockspaceId = ImGui::GetID( "MainDockSpace" );
         ImGui::DockSpace( dockspaceId, ImVec2( 0.0f, 0.0f ), ImGuiDockNodeFlags_PassthruCentralNode );
+
+        renderMenuBar();
+        renderPanels();
 
         if( m_layout.resetRequested )
         {
             setupDefaultLayout( dockspaceId );
             m_layout.resetRequested = false;
         }
-        else if( m_layout.needsSetup )
-        {
-            setupDefaultLayout( dockspaceId );
-            m_layout.needsSetup = false;
-        }
 
-        renderMenuBar();
-        renderPanels();
+        ImGui::End();
+
         renderStatusBar();
     }
 
@@ -320,8 +317,6 @@ namespace nfx::vista
 
             ImGui::EndMenuBar();
         }
-
-        ImGui::End();
     }
 
     void Application::renderPanels()

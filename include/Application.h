@@ -96,8 +96,7 @@ namespace nfx::vista
 
         struct
         {
-            bool needsSetup = true;
-            bool resetRequested = false;
+            bool resetRequested = true;
         } m_layout;
 
         std::optional<dnv::vista::sdk::GmodPath> m_currentGmodPath;
