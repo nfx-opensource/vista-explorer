@@ -29,12 +29,14 @@ namespace nfx::vista
         void run();
 
     private:
-        void shutdown();
         void beginFrame();
         void renderFrame();
         void endFrame();
 
         void renderStatusBar();
+
+        void shutdown();
+
         void setupDefaultLayout( unsigned int dockspaceId );
 
         struct

@@ -197,28 +197,14 @@ namespace nfx::vista
     {
         while( !glfwWindowShouldClose( m_window.handle ) )
         {
-            m_rendering.mode.waitOrPollEvents();
-
             beginFrame();
             renderFrame();
             endFrame();
+
+            m_rendering.mode.waitOrPollEvents();
         }
 
         shutdown();
-    }
-
-    void Application::shutdown()
-    {
-        {
-            ImGui_ImplOpenGL3_Shutdown();
-            ImGui_ImplGlfw_Shutdown();
-            ImGui::DestroyContext();
-        }
-
-        {
-            glfwDestroyWindow( m_window.handle );
-            glfwTerminate();
-        }
     }
 
     void Application::beginFrame()
@@ -241,29 +227,6 @@ namespace nfx::vista
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-    }
-
-    void Application::setupDefaultLayout( unsigned int dockspaceId )
-    {
-        ImGui::DockBuilderRemoveNode( dockspaceId );
-        ImGui::DockBuilderAddNode( dockspaceId, ImGuiDockNodeFlags_DockSpace );
-        ImGui::DockBuilderSetNodeSize( dockspaceId, ImGui::GetMainViewport()->WorkSize );
-
-        // Split vertically 50/50: left | right
-        ImGuiID rightId;
-        ImGuiID leftId = ImGui::DockBuilderSplitNode( dockspaceId, ImGuiDir_Left, 0.5f, nullptr, &rightId );
-
-        // Split right half horizontally 50/50: top (GmodViewer) | bottom (NodeDetails)
-        ImGuiID rightBottomId;
-        ImGuiID rightTopId = ImGui::DockBuilderSplitNode( rightId, ImGuiDir_Up, 0.5f, nullptr, &rightBottomId );
-
-        // Dock panels
-        ImGui::DockBuilderDockWindow( "LocalId Builder", leftId );
-        ImGui::DockBuilderDockWindow( "Project Manager", leftId );
-        ImGui::DockBuilderDockWindow( "Gmod Viewer", rightTopId );
-        ImGui::DockBuilderDockWindow( "Node Details", rightBottomId );
-
-        ImGui::DockBuilderFinish( dockspaceId );
     }
 
     void Application::renderFrame()
@@ -414,6 +377,21 @@ namespace nfx::vista
         renderStatusBar();
     }
 
+    void Application::endFrame()
+    {
+        ImGui::Render();
+
+        int display_w, display_h;
+        glfwGetFramebufferSize( m_window.handle, &display_w, &display_h );
+        glViewport( 0, 0, display_w, display_h );
+        glClearColor( 0.1f, 0.1f, 0.12f, 1.0f );
+        glClear( GL_COLOR_BUFFER_BIT );
+
+        ImGui_ImplOpenGL3_RenderDrawData( ImGui::GetDrawData() );
+
+        glfwSwapBuffers( m_window.handle );
+    }
+
     void Application::renderStatusBar()
     {
         ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -476,18 +454,40 @@ namespace nfx::vista
         ImGui::PopStyleVar( 3 );
     }
 
-    void Application::endFrame()
+    void Application::shutdown()
     {
-        ImGui::Render();
+        {
+            ImGui_ImplOpenGL3_Shutdown();
+            ImGui_ImplGlfw_Shutdown();
+            ImGui::DestroyContext();
+        }
 
-        int display_w, display_h;
-        glfwGetFramebufferSize( m_window.handle, &display_w, &display_h );
-        glViewport( 0, 0, display_w, display_h );
-        glClearColor( 0.1f, 0.1f, 0.12f, 1.0f );
-        glClear( GL_COLOR_BUFFER_BIT );
+        {
+            glfwDestroyWindow( m_window.handle );
+            glfwTerminate();
+        }
+    }
 
-        ImGui_ImplOpenGL3_RenderDrawData( ImGui::GetDrawData() );
+    void Application::setupDefaultLayout( unsigned int dockspaceId )
+    {
+        ImGui::DockBuilderRemoveNode( dockspaceId );
+        ImGui::DockBuilderAddNode( dockspaceId, ImGuiDockNodeFlags_DockSpace );
+        ImGui::DockBuilderSetNodeSize( dockspaceId, ImGui::GetMainViewport()->WorkSize );
 
-        glfwSwapBuffers( m_window.handle );
+        // Split vertically 50/50: left | right
+        ImGuiID rightId;
+        ImGuiID leftId = ImGui::DockBuilderSplitNode( dockspaceId, ImGuiDir_Left, 0.5f, nullptr, &rightId );
+
+        // Split right half horizontally 50/50: top (GmodViewer) | bottom (NodeDetails)
+        ImGuiID rightBottomId;
+        ImGuiID rightTopId = ImGui::DockBuilderSplitNode( rightId, ImGuiDir_Up, 0.5f, nullptr, &rightBottomId );
+
+        // Dock panels
+        ImGui::DockBuilderDockWindow( "LocalId Builder", leftId );
+        ImGui::DockBuilderDockWindow( "Project Manager", leftId );
+        ImGui::DockBuilderDockWindow( "Gmod Viewer", rightTopId );
+        ImGui::DockBuilderDockWindow( "Node Details", rightBottomId );
+
+        ImGui::DockBuilderFinish( dockspaceId );
     }
 } // namespace nfx::vista
