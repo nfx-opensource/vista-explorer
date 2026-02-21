@@ -129,6 +129,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${imgui_SOURCE_DIR}
     ${imgui_SOURCE_DIR}/backends
     ${imgui_SOURCE_DIR}/misc/cpp
@@ -139,7 +140,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 #----------------------------------------------
 
 find_package(OpenGL REQUIRED)
-target_link_libraries(${PROJECT_NAME}  PRIVATE OpenGL::GL)
+target_link_libraries(${PROJECT_NAME} PRIVATE OpenGL::GL)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     glfw

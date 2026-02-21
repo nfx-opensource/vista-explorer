@@ -1,7 +1,6 @@
 #pragma once
 
 #include <dnv/vista/sdk/VIS.h>
-#include <imgui.h>
 
 #include <functional>
 #include <optional>

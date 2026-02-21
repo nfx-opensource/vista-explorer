@@ -29,14 +29,25 @@ namespace nfx::vista
         void run();
 
     private:
+        bool initializeWindow();
+        bool initializeImGui();
+
+        void initializePanels();
+        void initializeStatus();
+
+        void connectPanels();
+
         void beginFrame();
         void renderFrame();
         void endFrame();
 
+        void renderMenuBar();
+        void renderPanels();
         void renderStatusBar();
 
         void shutdown();
 
+        void calcFps();
         void setupDefaultLayout( unsigned int dockspaceId );
 
         struct
@@ -77,6 +88,7 @@ namespace nfx::vista
 
         struct
         {
+            float height = 25.f;
             std::string rendererName;
             std::string glVersion;
             size_t nodeCount = 0;

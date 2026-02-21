@@ -8,8 +8,8 @@ namespace nfx
      * @brief Rendering mode abstraction for GLFW event handling
      * @details Supports three modes:
      *          - EventDriven: glfwWaitEvents() - waits indefinitely for events, ~0% GPU at rest
-     *          - Adaptive:    glfwWaitEventsTimeout() - wakes on events or after a timeout (~10fps
-     *                         cap at rest), balances responsiveness and GPU usage
+     *          - Adaptive:    glfwWaitEventsTimeout() - wakes on events or after a timeout,
+     *                         balances responsiveness and GPU usage
      *          - Polling:     glfwPollEvents() - continuous polling, highest CPU/GPU usage
      */
     class RenderingMode
@@ -74,7 +74,6 @@ namespace nfx
             {
                 glfwPostEmptyEvent();
             }
-            // In Polling mode, no need to do anything
         }
 
         /**
@@ -95,8 +94,7 @@ namespace nfx
         }
 
     private:
-        static constexpr double k_adaptiveTimeoutSeconds = 0.1; ///< Max wait in Adaptive mode (~10fps at rest)
-
+        static constexpr double k_adaptiveTimeoutSeconds = 0.2; ///< Max wait in Adaptive mode
         Mode m_mode;
     };
 } // namespace nfx

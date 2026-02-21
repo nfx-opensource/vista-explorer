@@ -1,7 +1,6 @@
 #pragma once
 
-#include <dnv/vista/sdk/ImoNumber.h>
-#include <dnv/vista/sdk/transport/ShipId.h>
+#include <dnv/vista/sdk/Transport.h>
 
 #include <optional>
 #include <string>

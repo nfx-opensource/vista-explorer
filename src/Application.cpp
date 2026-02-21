@@ -33,162 +33,19 @@ namespace nfx::vista
 
     bool Application::initialize()
     {
+        if( !initializeWindow() )
         {
-            if( !glfwInit() )
-            {
-                std::cerr << "Failed to initialize GLFW\n";
-                return false;
-            }
-
-            glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
-            glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 5 );
-            glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
-
-            m_window.handle = glfwCreateWindow( 1280, 720, "Vista explorer", nullptr, nullptr );
-            if( !m_window.handle )
-            {
-                std::cerr << "Failed to create GLFW window\n";
-                glfwTerminate();
-                return false;
-            }
-
-            glfwMakeContextCurrent( m_window.handle );
-            glfwSwapInterval( 1 );
+            return false;
         }
 
+        if( !initializeImGui() )
         {
-            IMGUI_CHECKVERSION();
-            ImGui::CreateContext();
-
-            ImGuiIO& io = ImGui::GetIO();
-            io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-            io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-
-            ImGui::StyleColorsDark();
-
-            ImGuiStyle& style = ImGui::GetStyle();
-
-            // --- Shape ---
-            style.WindowRounding = 6.0f;
-            style.ChildRounding = 4.0f;
-            style.FrameRounding = 4.0f;
-            style.PopupRounding = 4.0f;
-            style.ScrollbarRounding = 6.0f;
-            style.GrabRounding = 4.0f;
-            style.TabRounding = 4.0f;
-            style.WindowBorderSize = 1.0f;
-            style.FrameBorderSize = 0.0f;
-            style.WindowPadding = ImVec2( 10.0f, 10.0f );
-            style.FramePadding = ImVec2( 6.0f, 4.0f );
-            style.ItemSpacing = ImVec2( 8.0f, 6.0f );
-            style.ScrollbarSize = 12.0f;
-            style.GrabMinSize = 10.0f;
-
-            // --- Colors ---
-            ImVec4* c = style.Colors;
-
-            c[ImGuiCol_WindowBg] = Theme::Bg2;
-            c[ImGuiCol_ChildBg] = Theme::Bg1;
-            c[ImGuiCol_PopupBg] = ImVec4( Theme::Bg2.x, Theme::Bg2.y, Theme::Bg2.z, 0.98f );
-            c[ImGuiCol_Border] = Theme::Border;
-
-            c[ImGuiCol_FrameBg] = Theme::Bg0;
-            c[ImGuiCol_FrameBgHovered] = ImVec4( 0.20f, 0.20f, 0.20f, 1.00f );
-            c[ImGuiCol_FrameBgActive] = ImVec4( 0.12f, 0.12f, 0.12f, 1.00f );
-
-            c[ImGuiCol_TitleBg] = Theme::Bg1;
-            c[ImGuiCol_TitleBgActive] = Theme::Bg1;
-            c[ImGuiCol_TitleBgCollapsed] = Theme::Bg0;
-
-            c[ImGuiCol_MenuBarBg] = Theme::Bg1;
-            c[ImGuiCol_ScrollbarBg] = Theme::Bg0;
-            c[ImGuiCol_ScrollbarGrab] = Theme::Bg4;
-            c[ImGuiCol_ScrollbarGrabHovered] = ImVec4( 0.52f, 0.52f, 0.52f, 1.00f );
-            c[ImGuiCol_ScrollbarGrabActive] = Theme::Accent;
-
-            c[ImGuiCol_CheckMark] = Theme::Accent;
-            c[ImGuiCol_SliderGrab] = Theme::Accent;
-            c[ImGuiCol_SliderGrabActive] = Theme::AccentBright;
-
-            c[ImGuiCol_Button] = Theme::Bg3;
-            c[ImGuiCol_ButtonHovered] = Theme::Accent;
-            c[ImGuiCol_ButtonActive] = Theme::AccentDark;
-
-            c[ImGuiCol_Header] = ImVec4( Theme::Accent.x, Theme::Accent.y, Theme::Accent.z, 0.30f );
-            c[ImGuiCol_HeaderHovered] = ImVec4( Theme::Accent.x, Theme::Accent.y, Theme::Accent.z, 0.50f );
-            c[ImGuiCol_HeaderActive] = ImVec4( Theme::Accent.x, Theme::Accent.y, Theme::Accent.z, 0.80f );
-
-            c[ImGuiCol_Separator] = Theme::Border;
-            c[ImGuiCol_SeparatorHovered] = ImVec4( Theme::Accent.x, Theme::Accent.y, Theme::Accent.z, 0.70f );
-            c[ImGuiCol_SeparatorActive] = Theme::Accent;
-
-            c[ImGuiCol_ResizeGrip] = ImVec4( Theme::Accent.x, Theme::Accent.y, Theme::Accent.z, 0.20f );
-            c[ImGuiCol_ResizeGripHovered] = ImVec4( Theme::Accent.x, Theme::Accent.y, Theme::Accent.z, 0.60f );
-            c[ImGuiCol_ResizeGripActive] = ImVec4( Theme::Accent.x, Theme::Accent.y, Theme::Accent.z, 0.90f );
-
-            c[ImGuiCol_Tab] = ImVec4( 0.20f, 0.20f, 0.20f, 1.00f );
-            c[ImGuiCol_TabHovered] = ImVec4( Theme::Accent.x, Theme::Accent.y, Theme::Accent.z, 0.70f );
-            c[ImGuiCol_TabActive] = ImVec4( 0.24f, 0.50f, 0.90f, 1.00f );
-            c[ImGuiCol_TabUnfocused] = Theme::Bg1;
-            c[ImGuiCol_TabUnfocusedActive] = ImVec4( 0.22f, 0.40f, 0.70f, 1.00f );
-
-            c[ImGuiCol_DockingPreview] = ImVec4( Theme::Accent.x, Theme::Accent.y, Theme::Accent.z, 0.50f );
-            c[ImGuiCol_DockingEmptyBg] = ImVec4( 0.16f, 0.16f, 0.16f, 1.00f );
-
-            c[ImGuiCol_PlotLines] = Theme::Accent;
-            c[ImGuiCol_PlotHistogram] = Theme::Accent;
-
-            c[ImGuiCol_TextSelectedBg] = ImVec4( Theme::Accent.x, Theme::Accent.y, Theme::Accent.z, 0.35f );
-            c[ImGuiCol_NavHighlight] = Theme::Accent;
-
-            const char* glslVersion = "#version 330";
-            ImGui_ImplGlfw_InitForOpenGL( m_window.handle, true );
-            ImGui_ImplOpenGL3_Init( glslVersion );
+            return false;
         }
 
-        {
-            m_panels.gmodViewer = std::make_unique<GmodViewer>( *m_vis.instance );
-            m_panels.gmodViewer->setChangeNotifier( [this]() { m_rendering.mode.notifyChange(); } );
-            m_panels.gmodViewer->setNodeSelectionCallback( [this]( std::optional<GmodPath> path ) {
-                m_currentGmodPath = path;
-                m_panels.nodeDetails->setCurrentGmodPath( path );
-                m_panels.localIdBuilder->setCurrentGmodPath( path );
-                m_rendering.mode.notifyChange();
-            } );
-
-            m_panels.nodeDetails = std::make_unique<NodeDetails>();
-
-            m_panels.localIdBuilder = std::make_unique<LocalIdBuilder>( *m_vis.instance );
-            m_panels.localIdBuilder->setChangeNotifier( [this]() { m_rendering.mode.notifyChange(); } );
-
-            m_panels.nodeDetails->setUsePrimaryCallback( [this]( const dnv::vista::sdk::GmodPath& path ) {
-                m_panels.localIdBuilder->setPrimaryPath( path );
-                m_rendering.mode.notifyChange();
-            } );
-
-            m_panels.nodeDetails->setUseSecondaryCallback( [this]( const dnv::vista::sdk::GmodPath& path ) {
-                m_panels.localIdBuilder->setSecondaryPath( path );
-                m_rendering.mode.notifyChange();
-            } );
-
-            m_panels.projectManager = std::make_unique<ProjectManager>();
-            m_panels.projectManager->setChangeNotifier( [this]() { m_rendering.mode.notifyChange(); } );
-        }
-
-        {
-            if( const GLubyte* renderer = glGetString( GL_RENDERER ) )
-            {
-                m_status.rendererName = reinterpret_cast<const char*>( renderer );
-            }
-
-            if( const GLubyte* version = glGetString( GL_VERSION ) )
-            {
-                m_status.glVersion = reinterpret_cast<const char*>( version );
-            }
-
-            const auto& gmod = m_vis.instance->gmod( m_vis.currentVersion );
-            m_status.nodeCount = static_cast<size_t>( std::distance( gmod.begin(), gmod.end() ) );
-        }
+        initializePanels();
+        connectPanels();
+        initializeStatus();
 
         return true;
     }
@@ -197,6 +54,11 @@ namespace nfx::vista
     {
         while( !glfwWindowShouldClose( m_window.handle ) )
         {
+            if( m_rendering.mode.mode() != RenderingMode::Mode::EventDriven )
+            {
+                calcFps();
+            }
+
             beginFrame();
             renderFrame();
             endFrame();
@@ -207,23 +69,113 @@ namespace nfx::vista
         shutdown();
     }
 
-    void Application::beginFrame()
+    bool Application::initializeWindow()
     {
-        // Calculate FPS for polling and adaptive modes
-        if( m_rendering.mode.mode() != RenderingMode::Mode::EventDriven )
+        if( !glfwInit() )
         {
-            double currentTime = glfwGetTime();
-            if( m_rendering.lastFrameTime > 0.0 )
-            {
-                double deltaTime = currentTime - m_rendering.lastFrameTime;
-                if( deltaTime > 0.0 )
-                {
-                    m_rendering.fps = 1.0 / deltaTime;
-                }
-            }
-            m_rendering.lastFrameTime = currentTime;
+            std::cerr << "Failed to initialize GLFW\n";
+            return false;
         }
 
+        glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
+        glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 5 );
+
+        glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
+
+        m_window.handle = glfwCreateWindow( 1280, 720, "Vista explorer", nullptr, nullptr );
+        if( !m_window.handle )
+        {
+            std::cerr << "Failed to create GLFW window\n";
+            glfwTerminate();
+            return false;
+        }
+
+        glfwMakeContextCurrent( m_window.handle );
+        glfwSwapInterval( 1 );
+
+        return true;
+    }
+
+    bool Application::initializeImGui()
+    {
+        IMGUI_CHECKVERSION();
+        auto ctx = ImGui::CreateContext();
+
+        if( !ctx )
+        {
+            return false;
+        }
+
+        ImGuiIO& io = ImGui::GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
+        ImGui::StyleColorsDark();
+        Theme::apply( ImGui::GetStyle() );
+
+        if( !ImGui_ImplGlfw_InitForOpenGL( m_window.handle, true ) )
+        {
+            return false;
+        }
+
+        if( !ImGui_ImplOpenGL3_Init( "#version 330" ) )
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    void Application::initializePanels()
+    {
+        m_panels.gmodViewer = std::make_unique<GmodViewer>( *m_vis.instance );
+        m_panels.nodeDetails = std::make_unique<NodeDetails>();
+        m_panels.localIdBuilder = std::make_unique<LocalIdBuilder>( *m_vis.instance );
+        m_panels.projectManager = std::make_unique<ProjectManager>();
+    }
+
+    void Application::initializeStatus()
+    {
+        if( const GLubyte* renderer = glGetString( GL_RENDERER ) )
+        {
+            m_status.rendererName = reinterpret_cast<const char*>( renderer );
+        }
+
+        if( const GLubyte* version = glGetString( GL_VERSION ) )
+        {
+            m_status.glVersion = reinterpret_cast<const char*>( version );
+        }
+
+        const auto& gmod = m_vis.instance->gmod( m_vis.currentVersion );
+        m_status.nodeCount = static_cast<size_t>( std::distance( gmod.begin(), gmod.end() ) );
+    }
+
+    void Application::connectPanels()
+    {
+        m_panels.gmodViewer->setChangeNotifier( [this]() { m_rendering.mode.notifyChange(); } );
+        m_panels.gmodViewer->setNodeSelectionCallback( [this]( std::optional<GmodPath> path ) {
+            m_currentGmodPath = path;
+            m_panels.nodeDetails->setCurrentGmodPath( path );
+            m_panels.localIdBuilder->setCurrentGmodPath( path );
+            m_rendering.mode.notifyChange();
+        } );
+
+        m_panels.localIdBuilder->setChangeNotifier( [this]() { m_rendering.mode.notifyChange(); } );
+
+        m_panels.nodeDetails->setUsePrimaryCallback( [this]( const dnv::vista::sdk::GmodPath& path ) {
+            m_panels.localIdBuilder->setPrimaryPath( path );
+            m_rendering.mode.notifyChange();
+        } );
+        m_panels.nodeDetails->setUseSecondaryCallback( [this]( const dnv::vista::sdk::GmodPath& path ) {
+            m_panels.localIdBuilder->setSecondaryPath( path );
+            m_rendering.mode.notifyChange();
+        } );
+
+        m_panels.projectManager->setChangeNotifier( [this]() { m_rendering.mode.notifyChange(); } );
+    }
+
+    void Application::beginFrame()
+    {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
@@ -233,10 +185,8 @@ namespace nfx::vista
     {
         ImGuiViewport* viewport = ImGui::GetMainViewport();
 
-        const float statusBarHeight = 25.0f;
-
         ImGui::SetNextWindowPos( viewport->WorkPos );
-        ImGui::SetNextWindowSize( ImVec2( viewport->WorkSize.x, viewport->WorkSize.y - statusBarHeight ) );
+        ImGui::SetNextWindowSize( ImVec2( viewport->WorkSize.x, viewport->WorkSize.y - m_status.height ) );
         ImGui::SetNextWindowViewport( viewport->ID );
 
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
@@ -266,7 +216,28 @@ namespace nfx::vista
             m_layout.needsSetup = false;
         }
 
-        // Menu bar
+        renderMenuBar();
+        renderPanels();
+        renderStatusBar();
+    }
+
+    void Application::endFrame()
+    {
+        ImGui::Render();
+
+        int display_w, display_h;
+        glfwGetFramebufferSize( m_window.handle, &display_w, &display_h );
+        glViewport( 0, 0, display_w, display_h );
+        glClearColor( 0.1f, 0.1f, 0.12f, 1.0f );
+        glClear( GL_COLOR_BUFFER_BIT );
+
+        ImGui_ImplOpenGL3_RenderDrawData( ImGui::GetDrawData() );
+
+        glfwSwapBuffers( m_window.handle );
+    }
+
+    void Application::renderMenuBar()
+    {
         if( ImGui::BeginMenuBar() )
         {
             if( ImGui::BeginMenu( "File" ) )
@@ -351,8 +322,10 @@ namespace nfx::vista
         }
 
         ImGui::End();
+    }
 
-        // Render panels
+    void Application::renderPanels()
+    {
         if( m_ui.showGmodViewer )
         {
             m_panels.gmodViewer->render( m_vis.currentVersion );
@@ -372,24 +345,6 @@ namespace nfx::vista
         {
             m_panels.projectManager->render();
         }
-
-        // Render status bar
-        renderStatusBar();
-    }
-
-    void Application::endFrame()
-    {
-        ImGui::Render();
-
-        int display_w, display_h;
-        glfwGetFramebufferSize( m_window.handle, &display_w, &display_h );
-        glViewport( 0, 0, display_w, display_h );
-        glClearColor( 0.1f, 0.1f, 0.12f, 1.0f );
-        glClear( GL_COLOR_BUFFER_BIT );
-
-        ImGui_ImplOpenGL3_RenderDrawData( ImGui::GetDrawData() );
-
-        glfwSwapBuffers( m_window.handle );
     }
 
     void Application::renderStatusBar()
@@ -466,6 +421,20 @@ namespace nfx::vista
             glfwDestroyWindow( m_window.handle );
             glfwTerminate();
         }
+    }
+
+    void Application::calcFps()
+    {
+        double currentTime = glfwGetTime();
+        if( m_rendering.lastFrameTime > 0.0 )
+        {
+            double deltaTime = currentTime - m_rendering.lastFrameTime;
+            if( deltaTime > 0.0 )
+            {
+                m_rendering.fps = 1.0 / deltaTime;
+            }
+        }
+        m_rendering.lastFrameTime = currentTime;
     }
 
     void Application::setupDefaultLayout( unsigned int dockspaceId )
